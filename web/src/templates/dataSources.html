@@ -1,0 +1,184 @@
+{{template "header" .}}
+
+<h1>{{.Title}}</h1>
+
+<div class="data-sources">
+    <div class="data-source">
+        <h2 id="data-source-name">Example</h2>
+        <p id="data-source-type">Postgres</p>
+        <p id="data-source-date">Inserted at: </p>
+
+    </div>
+    
+</div>
+
+<div class="container">
+    <div class="data-source-form">
+        <form id="data-source-form">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="sourceType">Source Type</label>
+            <select id="sourceType" name="sourceType" required>
+                <option value="postgres">Postgres</option>
+                <option value="mssql">MSSQL</option>
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+            </select>
+
+            <div id="connectionDetails">
+                <div id="postgres-mssql-fields" class="connection-fields">
+                    <label for="host">Host</label>
+                    <input type="text" id="host" name="host">
+
+                    <label for="port">Port</label>
+                    <input type="number" id="port" name="port">
+
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username">
+
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password">
+
+                    <label for="ssl_mode">SSL Mode</label>
+                    <input type="checkbox" id="ssl_mode" name="ssl_mode">
+                </div>
+
+                <div id="file-fields" class="connection-fields">
+                    <label for="URL">URL</label>
+                    <input type="text" id="URL" name="URL">
+                </div>
+            </div>
+
+            <label for="query">Query (optional)</label>
+            <textarea id="query" name="query"></textarea>
+
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+</div>
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function () {
+        toggleType()
+        alterForm()
+
+    });
+    function toggleType() {
+        document.getElementById('sourceType').addEventListener('change', function () {
+            const sourceType = this.value;
+            const connectionFields = document.querySelectorAll('.connection-fields');
+            connectionFields.forEach(field => field.style.display = 'none');
+
+            if (sourceType === 'postgres' || sourceType === 'mssql') {
+                document.getElementById('postgres-mssql-fields').style.display = 'block';
+            } else if (sourceType === 'csv' || sourceType === 'JSON') {
+                document.getElementById('file-fields').style.display = 'block';
+            }
+        });
+    }
+    function alterForm() {
+        $('#data-source-form').submit(function (event) {
+            event.preventDefault();
+            formData = {}
+
+            $(this).find('input , select').each(function () {
+                formData[this.name] = this.value
+            })
+
+            const type = formData.sourceType
+            $.ajax({
+                type: 'POST',
+                url: '/data-source',
+                data: {
+                    name: formData.name,
+                    sourceType: formData.sourceType,
+                    host: formData.host,
+                    port: formData.port,
+                    username: formData.username,
+                    password: formData.password,
+                    ssl_mode: formData.ssl_mode,
+                    URL: formData.URL,
+                    query: formData.query
+                }
+            });
+            return false;
+        });
+    }
+
+
+</script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+    }
+
+    h1,
+    h2 {
+        color: #333;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+
+    .data-source-form-processes {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .data-source-form-process {
+        background-color: #e9ecef;
+        padding: 15px;
+        border-radius: 8px;
+        width: 48%;
+    }
+
+    .data-source-form {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .data-source-form label {
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .data-source-form input,
+    .data-source-form select,
+    .data-source-form textarea {
+        padding: 10px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .data-source-form button {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .data-source-form button:hover {
+        background-color: #0056b3;
+    }
+
+    .connection-fields {
+        display: none;
+        margin-top: 10px;
+    }
+</style>

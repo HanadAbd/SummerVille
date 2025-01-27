@@ -1,0 +1,43 @@
+{{template "header" .}}
+
+<div class="container">
+    <div class="filters">
+        <label for="machine-select">Machine</label>
+        <select id="machine-select">
+            <option value=""></option>
+            <option value="machine1">Machine 1</option>
+            <option value="machine2">Machine 2</option>
+        </select>
+        <label for="shift-select">Shift</label>
+        <select id="shift-select">
+            <option value=""></option>
+            <option value="shift1">Shift 1</option>
+            <option value="shift2">Shift 2</option>
+        </select>
+    </div>
+
+    <div class="kpi-container">
+        <div class="kpi-card">
+            <h3>Total Amount Produced</h3>
+            <p>0</p>
+        </div>
+        <div class="kpi-card">
+            <h3>Amount Produced This Shift</h3>
+            <p>0</p>
+        </div>
+        <div class="kpi-card">
+            <h3>All Shifts</h3>
+            <p>0</p>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <div class="table-container">
+        <div id="table-wrapper"></div>
+    </div>
+</div>
+
+<script src="/static/typescript/dashboard.js" type="module"></script>

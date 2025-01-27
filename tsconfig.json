@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "outDir": "web/dist",
+    "rootDir": "web/src",
+    "target": "es6",
+    "module": "es6",
+    "strict": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["web/src/**/*.ts"],
+  "exclude": ["node_modules"]
+}
