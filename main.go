@@ -33,13 +33,13 @@ func main() {
 	intilaseEnv()
 	mux := http.NewServeMux()
 
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./web/dist"))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./web/src"))))
 
 	route.WebRouting(mux, templates)
 
 	// backend.StartBackend(mux)
 
-	fmt.Println("Server is running on: http://localhost:8080/dashboard")
+	fmt.Println("Server is running on: http://localhost:8080/")
 
 	err := http.ListenAndServe("localhost:8080", mux)
 

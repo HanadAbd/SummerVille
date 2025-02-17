@@ -1,0 +1,384 @@
+<!--
+This page is the homepage of the given workspace with the list of applications 
+as well an option to edit page added here
+ alongside a search bar
+
+-->
+{{template "header" .}}
+<style>
+    
+
+    .search-bar {
+        display: flex;
+        flex: 1;
+        justify-content: center;
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+
+    .search-bar input {
+        padding: 0.5rem;
+        width: 250px;
+        border: none;
+        border-radius: 5px;
+        margin-left: auto;
+    }
+
+    .search-bar button {
+        background-color: #6064d6;
+        border: none;
+        padding: 0.5rem 1rem;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-right: 3vh;
+    }
+
+    /* Dashboard Container */
+    .container {
+        display: flex;
+        height: calc(100vh - 70px);
+    }
+
+    .sidebar {
+        width: 250px;
+        background-color: #1f2233;
+        display: flex;
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .sidebar a {
+        color: #8f90aa;
+        padding: 0.75rem;
+        border-radius: 5px;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .sidebar a:hover,
+    .sidebar a.active {
+        background-color: #6064d6;
+        color: #fff;
+    }
+
+    .main-content {
+        flex: 1;
+        background-color: var(--background-color);
+        padding: 1.5rem;
+        overflow-y: auto;
+    }
+
+    /* Dashboard Cards */
+    .stats {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 2rem;
+    }
+
+    .stat {
+        background: var(--container-color);
+        padding: 1.5rem;
+        border-radius: 8px;
+        text-align: center;
+        width: 200px;
+    }
+
+    .stat h2 {
+        margin-bottom: 0.5rem;
+        color: var(--text-color);
+    }
+
+    .stat p {
+        font-size: 0.9rem;
+        color: var(--text-color);
+    }
+
+    /* Product Grid */
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+    }
+
+    .product-card {
+        background-color: var(--container-color);
+        padding: 1rem;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .product-card button {
+        background-color: var(--background-color);
+        border: none;
+        padding: 0.5rem 1rem;
+        color: var(--text-color);
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    /* Chart Placeholder */
+    .chart-placeholder {
+        background: var(--container-color);
+        height: 200px;
+        margin-bottom: 2rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-color);
+    }
+
+    /* Application Grid */
+    .app-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin: 30px 100px 30px 100px;
+    }
+
+    .app-tile {
+        background-color: var(--container-color);
+        padding: 1rem;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+    }
+
+    .app-tile h3 {
+        margin-bottom: 0.5rem;
+        color: var(--text-color);
+    }
+
+    .app-tile .more-options {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: var(--background-color);
+        border: none;
+        padding: 0.5rem;
+        color: var(--text-color);
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .app-tile .options-menu {
+        display: none;
+        position: absolute;
+        top: 40px;
+        right: 10px;
+        background-color: var(--background-color);
+        border: 1px solid var(--divide-color);
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .app-tile .options-menu a {
+        display: block;
+        padding: 0.5rem 1rem;
+        color: var(--text-color);
+        text-decoration: none;
+    }
+
+    .app-tile .options-menu a:hover {
+        background-color: var(--container-color);
+    }
+
+    .app-tile:hover .options-menu {
+        display: block;
+    }
+
+    .options-menu{
+        z-index: 1;
+    }
+
+     .application-header{
+        margin: 50px 100px 30px;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .modal-body{
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: left;
+        margin:20px;
+    }
+    .modal-body input{
+        padding: 0.5rem;
+        border-radius: 5px;
+    }
+    #add-application{
+        
+        margin: 20px 0px;
+    }
+    
+</style>
+
+<title>Home</title>
+
+<dialog id="myModal">
+    <div class="modal-content">
+    
+
+    <div class="modal-header">
+        <h2>Add Application</h2>
+        <span class="close" onclick="document.getElementById('myModal').close();">&times;</span>
+    </div>
+    <div class="modal-body">
+        <label for="appName">Application Name:</label>
+        <input type="text" id="appName" name="appName" required>
+        <label for="appDescription">Description:</label>
+        <input type="text" id="appDescription" name="appDescription" required>
+        <label for="appPage">Page:</label>
+        <input type="text" id="appPage" name="appPage" required>
+        <label for="appDate">Date of Creation:</label>
+        <input type="date" id="appDate" name="appDate" required>
+        <button id="add-application"onclick="addNewApplication()">Add</button>
+    </div>
+
+    <script>
+        function addNewApplication() {
+            const name = document.getElementById('appName').value;
+            const description = document.getElementById('appDescription').value;
+            const page = document.getElementById('appPage').value;
+            const date = document.getElementById('appDate').value;
+
+            if (name && description && page && date) {
+                const newApp = {
+                    name: name,
+                    description: description,
+                    page: page,
+                    dateofcreation: date,
+                };
+
+                const appGrid = document.querySelector('.app-grid');
+                const appTile = document.createElement('div');
+                appTile.classList.add('app-tile');
+                appTile.innerHTML = `
+                    <h3>${newApp.name}</h3>
+                    <p>${newApp.description}</p>
+                    <small>${newApp.dateofcreation}</small>
+                    <button class="more-options">⋮</button>
+                    <button class="options-menu">
+                        <a class="open-application" href="${newApp.page}">Open</a>
+                        <a class="edit-application" href="edit/${newApp.page}">Edit</a>
+                        <a class="delete-application" href="#">Delete</a>
+                    </button>
+                `;
+                appGrid.appendChild(appTile);
+                appTile.addEventListener('mouseover', () => {
+                    appTile.style.cursor = 'pointer';
+                });
+                appTile.addEventListener('click', () => {
+                    window.open(newApp.page, '_blank');
+                    console.log(newApp.page);
+                });
+
+                document.getElementById('myModal').close();
+            } else {
+                alert('Please fill in all fields.');
+            }
+        }
+    </script>
+    <button onclick="document.getElementById('myModal').close();">Close</button>
+    </div>
+</dialog>
+
+<div class="application-header">
+    <h1>Applications</h1>
+    <div class="search-bar">
+        <input type="text" placeholder="Search...">
+        <button>Search</button>
+    </div>
+    <button class="btn btn-primary"onclick="document.getElementById('myModal').showModal();">Add Application</button>
+
+</div>
+
+<div class="app-grid">
+</div>
+
+<script>
+    (function () {
+            const fakeApplications = [
+                {
+                    "name": "Daily floor production summary",
+                    "description": "Main report for viewing production data",
+                    "page": "dashboard",
+                    "dateofcreation": "29/01/2025",
+                },
+                {
+                    "name": "Workforce utilisation report",
+                    "description": "Attendance and Performance report",
+                    "page": "workforce-utilisation-report",
+                    "dateofcreation": "29/01/2025",
+                },
+                {
+                    "name": "Energy Consumption Report",
+                    "description": "Energy against the shop floor",
+                    "page": "energy-consumption-report",
+                    "dateofcreation": "29/01/2025",
+                },
+                {
+                    "name": "Quality control",
+                    "description": "Repair, Rework and Scrap report",
+                    "page": "quality-control",
+                    "dateofcreation": "30/01/2025",
+                },
+                {
+                    "name": "Test Data",
+                    "description": "To view the ongoings of the test data",
+                    "page": "quality-control",
+                    "dateofcreation": "30/01/2025",
+                },
+                {
+                    "name": "myProject Performance",
+                    "description": "Testing the performance of the application for the application",
+                    "page": "quality-control",
+                    "dateofcreation": "30/01/2025",
+                },
+            ];
+
+            addApplications(fakeApplications);
+
+            function addApplications(applications) {
+                const appGrid = document.querySelector('.app-grid');
+                applications.forEach((app) => {
+                    const appTile = document.createElement('div');
+                    appTile.classList.add('app-tile');
+                    appTile.innerHTML = `
+                        <h3>${app.name}</h3>
+                        <p>${app.description}</p>
+                        <small>${app.dateofcreation}</small>
+                        <button class="more-options">⋮</button>
+                        <button class="options-menu">
+                            <a class="open-application" href="${app.page}">Open</a>
+                            <a class="edit-application" href="edit/${app.page}">Edit</a>
+                            <a class ="delete-application" href="#">Delete</a>
+                        </button>
+                    `;
+                    appGrid.appendChild(appTile);
+                    appTile.addEventListener('mouseover', () => {
+                        appTile.style.cursor = 'pointer';
+                    }); 
+                    appTile.addEventListener('click', (event) => {
+                        if (!event.target.closest('.options-menu') && !event.target.classList.contains('more-options')) {
+                            window.location.href = app.page;
+                            console.log(app.page);
+                        }
+                    }); 
+                });
+                 
+            }
+            
+       
+
+    })();
+
+</script>

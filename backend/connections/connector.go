@@ -112,7 +112,7 @@ func GetDataSources() [][]string {
 		}
 		data = append(data, []string{sourceName, sourceType, createdAt.String()})
 	}
-
+	return data
 }
 func SetDataSource(w http.ResponseWriter, r *http.Request) bool {
 	sourceName := r.FormValue("name")

@@ -1,0 +1,198 @@
+{{template "header" .}}
+<div class="container">
+    <div class="sidebar">
+        <button id="addETLBtn">Add New ETL Process</button>
+        <ul id="etlProcessList">
+            <li class="etl-process">
+                <span class="etl-process-title">ETL Process 1</span>
+                <button class="deleteBtn">Delete</button>
+                <div class="etl-process-content">
+                    <p>Details about ETL Process 1</p>
+                </div>
+            </li>
+            <li class="etl-process">
+                <span class="etl-process-title">ETL Process 2</span>
+                <button class="deleteBtn">Delete</button>
+                <div class="etl-process-content">
+                    <p>Details about ETL Process 2</p>
+                </div>
+            </li>
+            <!-- More ETL processes as needed -->
+        </ul>
+    </div>
+    <div class="main-content">
+        <h2>ETL Process Name</h2>
+        <div class="card">
+            <h3>Refresh Time</h3>
+            <p id="refreshTime">Select an ETL process to see its refresh time.</p>
+            <button id="manualRefreshBtn">Manual Refresh</button>
+        </div>
+        <div class="tabs">
+            <button class="tablinks" onclick="openTab(event, 'DataSource')">Data Source</button>
+            <button class="tablinks" onclick="openTab(event, 'Transformation')">Transformation</button>
+            <button class="tablinks" onclick="openTab(event, 'Performance')">Performance</button>
+        </div>
+        <div id="DataSource" class="tabcontent">
+            <h3>Data Source</h3>
+            <p id="dataSourceInfo">Select an ETL process to see its data source information.</p>
+        </div>
+        <div id="Transformation" class="tabcontent">
+            <h3>Transformation</h3>
+            <p id="transformationInfo">Select an ETL process to see its transformation information.</p>
+        </div>
+        <div id="Performance" class="tabcontent">
+            <h3>Performance</h3>
+            <p id="performanceInfo">Select an ETL process to see its performance information.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for adding new ETL process -->
+<div id="addETLModal" class="modal">
+    <div class="modal-content">
+        <span class="closeBtn">&times;</span>
+        <h2>Add New ETL Process</h2>
+        <form id="addETLForm">
+            <label for="etlName">ETL Process Name:</label>
+            <input type="text" id="etlName" name="etlName" required>
+            <label for="dataSource">Data Source:</label>
+            <input type="text" id="dataSource" name="dataSource" required>
+            <label for="refreshTime">Refresh Time:</label>
+            <input type="text" id="refreshTime" name="refreshTime" required>
+            <label for="incrementalTime">Incremental Time:</label>
+            <input type="text" id="incrementalTime" name="incrementalTime" required>
+            <button type="submit">Submit</button>
+        </form>
+        <p id="formStatus"></p>
+    </div>
+</div>
+
+<style>
+    .container {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .sidebar {
+        width: 20%;
+        padding: 10px;
+        background-color: #333B59;
+        overflow-y: auto;
+    }
+
+    .main-content {
+        width: 70%;
+        padding: 10px;
+        overflow-y: auto;
+    }
+
+    .etl-process {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 5px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    .etl-process-title {
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .etl-process-content {
+        display: none;
+        margin-top: 10px;
+    }
+
+    .closeBtn {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .closeBtn:hover,
+    .closeBtn:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .card {
+        margin: 20px 0;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+
+    .tabs {
+        margin: 20px 0;
+    }
+
+    .tablinks {
+        background-color: #f1f1f1;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 10px 20px;
+        transition: 0.3s;
+    }
+
+    .tablinks:hover {
+        background-color: #ddd;
+    }
+
+    .tabcontent {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-top: none;
+    }
+</style>
+
+<script>
+    document.getElementById('addETLBtn').onclick = function () {
+        document.getElementById('addETLModal').style.display = 'block';
+    };
+
+    document.getElementsByClassName('closeBtn')[0].onclick = function () {
+        document.getElementById('addETLModal').style.display = 'none';
+    };
+
+    window.onclick = function (event) {
+        if (event.target == document.getElementById('addETLModal')) {
+            document.getElementById('addETLModal').style.display = 'none';
+        }
+    };
+
+    document.getElementById('addETLForm').onsubmit = function (event) {
+        event.preventDefault();
+        // Add logic to handle form submission and display success or failure message
+        document.getElementById('formStatus').innerText = 'Form submitted successfully!';
+    };
+
+    document.querySelectorAll('.etl-process-title').forEach(function (title) {
+        title.onclick = function () {
+            var content = this.nextElementSibling;
+            if (content.style.display === 'block') {
+                content.style.display = 'none';
+            } else {
+                content.style.display = 'block';
+            }
+        };
+    });
+
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tabcontent");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tablinks");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+</script>

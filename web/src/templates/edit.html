@@ -1,0 +1,147 @@
+{{template "header" .}}
+
+<style>
+     :root {
+        --accent-color: #7B82D7;
+        --text-color: #35354F;
+        --nav-bar-color: #8B90BE;
+        --container-color: #cbcbcb;
+        --divide-color: #a0a0a0;
+        --background-color: #eeeeee;
+    }
+    * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+main {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* margin:20px 0; */
+    background-color: #f0f0f0;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    grid-template-rows:3fr 1fr;
+    gap: 10px;
+    width: clamp(300px, 100%, 2000px);
+    height: calc(100vh - 80px);
+}
+
+.left ,.right{
+    grid-row: span 2; 
+    background-color: lightblue;
+    text-align: center;
+}
+
+.main {
+    background-color: lightgreen;
+    padding: 10px;
+    text-align: center;
+}
+
+
+
+.bottom {
+    background-color: lightgray;
+    text-align: center;
+}
+
+.tab {
+    background-color: var(--accent-color);
+    display: flex;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+
+.tab button {
+    background-color: var(--accent-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 0px;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+    flex: 1; 
+    font-size: 20px;
+    text-align: center; 
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover, .tab button.active {
+    background-color: var(--text-color);
+    color: var(--accent-color);
+}
+
+/* Style the tab content */
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
+}
+</style>
+
+<main>
+    <div class="container">
+        <div class="left">
+            <div class="tab">
+                <button class="tablinks" onclick="openCity(event, 'London')">London</button>
+                <button class="tablinks" onclick="openCity(event, 'Paris')">Paris</button>
+                <button class="tablinks" onclick="openCity(event, 'Tokyo')">Tokyo</button>
+            </div>
+
+            <!-- Tab content -->
+            <div id="London" class="tabcontent">
+                <h3>London</h3>
+                <p>London is the capital city of England.</p>
+            </div>
+            
+            <div id="Paris" class="tabcontent">
+                <h3>Paris</h3>
+                <p>Paris is the capital of France.</p>
+            </div>
+            
+            <div id="Tokyo" class="tabcontent">
+                <h3>Tokyo</h3>
+                <p>Tokyo is the capital of Japan.</p>
+            </div>
+        </div>
+        <div class="main">Main</div>
+        <div class="right">Right</div>
+        <div class="bottom">
+            <div class="tab">
+                <button class="tablinks" onclick="openCity(event, 'London')">London</button>
+                <button class="tablinks" onclick="openCity(event, 'Paris')">Paris</button>
+                <button class="tablinks" onclick="openCity(event, 'Tokyo')">Tokyo</button>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+    function openCity(evt, cityName) {
+            var i, tabcontent, tablinks;
+
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            document.getElementById(cityName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+</script>

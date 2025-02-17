@@ -1,184 +1,284 @@
 {{template "header" .}}
 
-<h1>{{.Title}}</h1>
-
-<div class="data-sources">
-    <div class="data-source">
-        <h2 id="data-source-name">Example</h2>
-        <p id="data-source-type">Postgres</p>
-        <p id="data-source-date">Inserted at: </p>
-
-    </div>
-    
-</div>
-
-<div class="container">
-    <div class="data-source-form">
-        <form id="data-source-form">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" required>
-
-            <label for="sourceType">Source Type</label>
-            <select id="sourceType" name="sourceType" required>
-                <option value="postgres">Postgres</option>
-                <option value="mssql">MSSQL</option>
-                <option value="csv">CSV</option>
-                <option value="json">JSON</option>
-            </select>
-
-            <div id="connectionDetails">
-                <div id="postgres-mssql-fields" class="connection-fields">
-                    <label for="host">Host</label>
-                    <input type="text" id="host" name="host">
-
-                    <label for="port">Port</label>
-                    <input type="number" id="port" name="port">
-
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username">
-
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password">
-
-                    <label for="ssl_mode">SSL Mode</label>
-                    <input type="checkbox" id="ssl_mode" name="ssl_mode">
-                </div>
-
-                <div id="file-fields" class="connection-fields">
-                    <label for="URL">URL</label>
-                    <input type="text" id="URL" name="URL">
-                </div>
-            </div>
-
-            <label for="query">Query (optional)</label>
-            <textarea id="query" name="query"></textarea>
-
-            <button type="submit">Upload</button>
-        </form>
-    </div>
-</div>
-
-<script>
-
-    document.addEventListener("DOMContentLoaded", function () {
-        toggleType()
-        alterForm()
-
-    });
-    function toggleType() {
-        document.getElementById('sourceType').addEventListener('change', function () {
-            const sourceType = this.value;
-            const connectionFields = document.querySelectorAll('.connection-fields');
-            connectionFields.forEach(field => field.style.display = 'none');
-
-            if (sourceType === 'postgres' || sourceType === 'mssql') {
-                document.getElementById('postgres-mssql-fields').style.display = 'block';
-            } else if (sourceType === 'csv' || sourceType === 'JSON') {
-                document.getElementById('file-fields').style.display = 'block';
-            }
-        });
-    }
-    function alterForm() {
-        $('#data-source-form').submit(function (event) {
-            event.preventDefault();
-            formData = {}
-
-            $(this).find('input , select').each(function () {
-                formData[this.name] = this.value
-            })
-
-            const type = formData.sourceType
-            $.ajax({
-                type: 'POST',
-                url: '/data-source',
-                data: {
-                    name: formData.name,
-                    sourceType: formData.sourceType,
-                    host: formData.host,
-                    port: formData.port,
-                    username: formData.username,
-                    password: formData.password,
-                    ssl_mode: formData.ssl_mode,
-                    URL: formData.URL,
-                    query: formData.query
-                }
-            });
-            return false;
-        });
-    }
-
-
-</script>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        margin: 0;
-        padding: 0;
+    :root{
+        --page-height: calc(100vh - 120px);
     }
-
-    h1,
-    h2 {
-        color: #333;
-    }
-
-    .container {
-        max-width: 800px;
-        margin: 20px auto;
-        padding: 20px;
-        background-color: #fff;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        border-radius: 8px;
-    }
-
-    .data-source-form-processes {
+    main{
         display: flex;
-        justify-content: space-between;
-        margin-bottom: 20px;
+        justify-content: center;
+        height: var(--page-height);
+        
     }
 
-    .data-source-form-process {
-        background-color: #e9ecef;
-        padding: 15px;
-        border-radius: 8px;
-        width: 48%;
-    }
-
-    .data-source-form {
+    /*Side Bar Content*/
+    .sidebar {
         display: flex;
         flex-direction: column;
+        align-items: center;
+        width: 20%;
+        padding: 10px;
+        background-color: var(--container-color);
+        
     }
 
-    .data-source-form label {
-        margin-top: 10px;
+    .side-list {
+        width: 100%;
+        overflow-y: auto;
+    }
+
+    .side-item {
+        display: grid;
+        grid-template-columns: 0.7fr 0.3fr;
+        grid-row: auto;
+        align-items: center;
+        margin:  0;
+        padding: 10px;
+        border-bottom: 4px solid var(--text-color);
+    }
+    .side-item:hover{
+        background-color: var(--accent-color);
+    }
+
+    .side-item-title{
         font-weight: bold;
-    }
-
-    .data-source-form input,
-    .data-source-form select,
-    .data-source-form textarea {
-        padding: 10px;
-        margin-top: 5px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-
-    .data-source-form button {
-        margin-top: 20px;
-        padding: 10px;
-        background-color: #007bff;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
         cursor: pointer;
     }
 
-    .data-source-form button:hover {
-        background-color: #0056b3;
-    }
-
-    .connection-fields {
-        display: none;
+    .side-item-content {
+        grid-column: span 2;
+        display: flex;
+        justify-content: space-between;
         margin-top: 10px;
     }
+
+    .btn-list{
+        background-color: var(--accent-color);
+        color: var(--background-color);
+        padding: 5px;
+        cursor: pointer;
+    }
+    /*End of side bar content*/
+
+    .main-content {
+        width: 70%;
+        max-height: var(--page-height);
+        overflow-y: auto;
+        margin: 0px auto;
+        display: grid;
+        grid-template-rows: 15vh 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .main-introduction {
+        grid-column: span 2;
+    }
+
+    .cont-performance {
+        grid-column: span 2;
+    }
+
+    
+
+
+
+
+    #dataSourceTable {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    #dataSourceTable th,
+    #dataSourceTable td {
+        border: 1px solid var(--text-color);
+        padding: 8px;
+        text-align: left;
+    }
+
+    #dataSourceTable th {
+        background-color: var(--divide-color);
+        font-weight: bold;
+    }
+
+    #dataSourceTable tr:nth-child(even) {
+        background-color: var(--divide-color);
+    }
+
+    #dataSourceTable tr:hover {
+        background-color: rgba(122, 104, 228, 0.3);
+    }
+
+    .tab-navigation{
+        display: flex;
+        gap: 0px;
+        background-color: var(--accent-color);
+    }
+    .tab-container {
+      padding: 0px;
+    }
+    .tab-navigation button {
+        min-width: 100px;
+        width: auto;
+        padding: 16px 32px;
+        border: none;
+        font-size: 1rem;
+        cursor: pointer;
+        background: var(--accent-colors);
+        color: var(--background-color);
+    }
+    .tab-navigation button.active {
+        background: var(--container-color);
+        color: var(--text-color);
+    }
+    .tab-content {
+        display: none;
+        padding: 16px;
+    }
+    .tab-content.active {
+        display: block;
+    }
 </style>
+
+<main>
+    <div class="sidebar">
+        <section class="dialog-modal">
+            <button class="btn btn-primary" onclick="document.getElementById('myModal').showModal();">Add New Source</button>
+            <dialog id="myModal">
+                <div class="modal-content">
+                    <div class="container tab-container cont-performance">
+                        <div class="tab-navigation">
+                            <button data-tab="1">Batch Refreshes</button>
+                            <button data-tab="2">Query Usage</button>
+                        </div>
+                        <div class="tab-contents">
+                            <div class="tab-content" data-tab="1">Content for Container 1, Tab 1</div>
+                            <div class="tab-content" data-tab="2">Content for Container 1, Tab 2</div>
+                        </div>
+                    </div>
+                </div>
+            </dialog>
+        </section>
+
+        <ul class="side-list ">
+            <li class="side-item ">
+                <span class="side-item-title ">Data Source 1</span>
+                <button class="side-item-btn btn btn-list ">Delete</button>
+                <div class="side-item-content ">
+                    <p>Created At: 2021-02-21</p>
+                    <p>Type: Postgres</p>
+                </div>
+            </li>
+            
+        </ul>
+    </div>
+    <div class="main-content">
+        <div class="main-introduction">
+            <h2>Data Source Name</h2>
+            <p id="dataSourceInfo">Select a data source to see its information.</p>
+        </div>
+
+        <div class="container">
+            <h3 class= "container-header">Connection Details</h3>
+            <p>Details about the connection to the data source.</p>
+        </div>
+        <div class = "container">
+            <h3 class= "container-header">Preview</h3>
+            <p>Preview of the data from the data source.</p>
+            <table id="dataSourceTable">
+                <thead>
+                    <tr>
+                        <th>Column 1</th>
+                        <th>Column 2</th>
+                        <th>Column 3</th>
+                        <!-- More columns as needed -->
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Data 1</td>
+                        <td>Data 2</td>
+                        <td>Data 3</td>
+                    </tr>
+                    <tr>
+                        <td>Data 4</td>
+                        <td>Data 5</td>
+                        <td>Data 6</td>
+                    </tr>
+                    <tr>
+                        <td>Data 7</td>
+                        <td>Data 7</td>
+                        <td>Data 7</td>
+                    </tr>
+                    <tr>
+                        <td>Data 8</td>
+                        <td>Data 8</td>
+                        <td>Data 8</td>
+                    </tr>
+                    <!-- More data rows as needed -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="container tab-container cont-performance">
+            <div class="tab-navigation">
+                <button data-tab="1">Batch Refreshes</button>
+                <button data-tab="2">Query Usage</button>
+            </div>
+            <div class="tab-contents">
+                <div class="tab-content" data-tab="1">Content for Container 1, Tab 1</div>
+                <div class="tab-content" data-tab="2">Content for Container 1, Tab 2</div>
+            </div>        
+        </div>
+        
+    </div>
+</main>
+
+<script>
+        function addNewApplication() {
+            const name = document.getElementById('appName').value;
+            const description = document.getElementById('appDescription').value;
+            const page = document.getElementById('appPage').value;
+            const date = document.getElementById('appDate').value;
+
+            if (name && description && page && date) {
+                const newApp = {
+                    name: name,
+                    description: description,
+                    page: page,
+                    dateofcreation: date,
+                };
+
+                const appGrid = document.querySelector('.app-grid');
+                const appTile = document.createElement('div');
+                appTile.classList.add('app-tile');
+                appTile.innerHTML = `
+                                <h3>${newApp.name}</h3>
+                                <p>${newApp.description}</p>
+                                <small>${newApp.dateofcreation}</small>
+                                <button class="more-options">⋮</button>
+                                <button class="options-menu">
+                                    <a class="open-application" href="${newApp.page}">Open</a>
+                                    <a class="edit-application" href="edit/${newApp.page}">Edit</a>
+                                    <a class="delete-application" href="#">Delete</a>
+                                </button>
+                            `;
+                appGrid.appendChild(appTile);
+                appTile.addEventListener('mouseover', () => {
+                    appTile.style.cursor = 'pointer';
+                });
+                appTile.addEventListener('click', () => {
+                    window.open(newApp.page, '_blank');
+                    console.log(newApp.page);
+                });
+
+                document.getElementById('myModal').close();
+            } else {
+                alert('Please fill in all fields.');
+            }
+        }
+
+
+
+</script>

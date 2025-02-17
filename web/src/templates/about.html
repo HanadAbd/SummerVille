@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <title>{{.Title}}</title>
+
+
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+        }
+
+
+        h1 {
+            color: var(--accent-color);
+            margin-bottom: 50px;
+        }
+    
+        .main-content {
+            width: clamp(300px, 10%, 1200px);
+            max-height: 100vh;
+            overflow-y: auto;
+        }
+    
+        .doc {
+            width: 80%;
+            padding: 20px;
+            margin: auto;
+        }
+    
+        .sidebar {
+            width: 20%;
+            background-color: var(--container-color);
+            padding: 20px;
+            border-left: 15px solid var(--accent-color);
+        }
+        
+        .sidebar {
+            position: relative;
+            height: 100%;
+            display:flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+    
+        .sidebar nav ul li {
+            margin: 20px 0;
+            border-bottom: 2px solid var(--text-color);
+        }
+        .btn-primary {
+            display: block;
+            width: 100%;
+            left: 0;
+        }
+    
+        a {
+            color: var(--text-color);
+        }
+    
+        .sidebar nav ul li a.active {
+            color: var(--accent-color);
+        }
+    
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+    
+        .main-content img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table, th, td {
+            border: 1px solid var(--text-color);
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--container-color);
+        }
+        img {
+            max-width: 50%;
+            max-height: 600px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    
+        .doc ul{
+            list-style-type: disc;  
+        }
+    </style>
+
+</head>
+
+<body>
+    <section class="sidebar">
+
+        <nav>
+            <ul>
+                <li><a href="#" id="home" onclick="showContent('home')">Introduction</a></li>
+                <li><a href="#" id = "services" onclick="showContent('services')">System Architecture</a></li>
+                <li><a href="#" id = "contact" onclick="showContent('contact')">Usecases/Testdata: MyCPU</a></li>
+                <li><a href="#" id="Optimisations" onclick="showContent('project')">Optimisations</a></li>
+                <li><a href="#" id="future" onclick="showContent('future')">What's left to do </a></li>
+            </ul>
+        </nav>
+        <a href="/login" class="btn btn-primary">Back to Home page</a>
+    </section>
+    
+    <section class="main-content" id="main-content">
+        <div class="doc" id="doc-content">
+
+        </div>
+        
+    </section>
+
+    <script>
+        function showContent(section) {
+            const content = {
+                home: {
+                    title: 'Introduction',
+                    text: `
+                    <p>Purpose of this project is mainly for my own learning of handling big data and data analysis in order to make a scalable, reliable and maintainable data driven application.
+
+<h4>Project Aims</h4>
+<p>I want to build an application that can data from wide range sources, and easily be able to query it efficiently to get both live and and historical data with minimal latency.</p>
+<p>Businesses may have a lot of data from multiple different types of vendors, software’s, and systems. They are interacted with in different, export and import in different ways and might not be able entirely useful or used to the best of their ability until they are combined with another system that again, might have an entirely different eco system.</p>
+<p>Aimed towards industries like logistics, transportation, manufacturing, finances, where tracking live data and analytics across large complex systems are necessary.</p>
+                    `
+                },
+                about: {
+                    title: 'Theory behind the system',
+                    text: `
+                    <p>Main concepts come from the **ETL** Process (Extract Transform and Load) **Lambda Architecture** by Nathan Marz as described in his book "Principles and best practices of scalable real-time data systems" in 2015.
+
+<p><img src="http://localhost:8080/static/images/lambda-architecture.png" alt="Lambda Architecture"></p>
+
+The main goal is for data analysts to query **any** data without needing to worry about timeliness, latency, accuracy, performance etc. and have a high quality reliable overview of data
+
+Has 2 different layers, **Speed Layer** and **Batch Layer**, 1 layer handlining querying  historical data by storing all data and querying that, and the other handling any and all available appended data that is added.
+
+Cons:
+- 2 Separate layers are hard to maintain
+- You would need incremental refresh of the batch layer due to full refreshes every hour being too hard to deal with
+- Speed Layer is incredibly unreliable
+- Very difficult to combine the results from Speed Layer and Batch Layer    
+                    </p>`
+                },
+                services: {
+                    title: 'Explanation of application',
+                    text: `
+<p>Main concepts come from the <strong>ETL</strong> Process (Extract Transform and Load) <strong>Lambda Architecture</strong> by Nathan Marz as described in his book &quot;Principles and best practices of scalable real-time data systems&quot; in 2015.</p>
+<p><img src="http://localhost:8080/static/images/lambda-architecture.png" alt="Lambda Architecture"></p>
+<p>The main goal is for data analysts to query <strong>any</strong> data without needing to worry about timeliness, latency, accuracy, performance etc. and have a high quality reliable overview of data</p>
+<p>Has 2 Main layers, <strong>Speed Layer</strong> and <strong>Batch Layer</strong>:</p>
+<p><strong>Batch Layer</strong>:  is responsible for handlining querying  historical data by storing all data sources into one data ware house, and then analysts build queries against that data that refresh and selected intervals. (This is querying section is what the <strong>serving layer</strong> is used for). <strong>Views stored in a Postgres Database</strong>
+<strong>Speed Layer</strong>: New data past the batch layer refresh interval in order to get live data. Views stored in a <strong>Redis cache</strong></p>
+<p>Cons:</p>
+<ul>
+<li><strong>2 Separate processing layer</strong> engines which are hard to maintain. <em>Almost similar</em> code but enough differences that it becomes difficult to abstract and errors typical duplicate in both, making it very hard to debug.</li>
+<li><strong>Needs Incremental refreshes</strong>, due to full refreshes being too intensive repeatedly. Makes the batch layer much more complicated. </li>
+<li><strong>Speed Layer is incredibly unreliable</strong> since it doesn&#39;t last as long as the batch layer, meaning if a duplicate message is received hours later, it won&#39;t be able to tell it&#39;s already received it since having forgotten. This damages the accuracy of the speed layer.</li>
+<li><strong>Combining results from both layers</strong> is incredibly difficult and requires some difficult computation.</li>
+<li><strong>Speed layer is not as intensive</strong>, since compared to the batch layer, it can only take <strong>live</strong> data sources so streams from sensors. Getting live data from <em>most</em> sources is very difficult and requires a lot of work</li>
+</ul>
+
+
+<p>This being my version with some changes</p>
+<p><img src="http://localhost:8080/static/images/my-system.png" alt="Lambda Architecture"></p>
+
+
+
+
+                    `
+                    
+                    
+                },
+                contact: {
+                    title: 'Usecases/Testdata: MyCPU',
+                    text: `
+<p>I made an example CPU factory</p>
+<p><img src="http://localhost:8080/static/images/factory-floor.png" alt="Lambda Architecture"></p>
+<p>Just for the testing of this application, I need example scenario to create test data for, so having example reports, queries, test data,
+data sources etc.</p>
+s
+Reports for this application:</p>
+<ul>
+<li>Daily floor production summary (Map contains live data travelling, bottle neck showing heat map concentration of parts at different locations over different spans of times, tool tips parts produced, different rates, other KPI metrics)</li>
+<li>workforce utilisation report (attendance for each department, shift efficient, tasks per department, different reasons for not attending.)</li>
+<li>Energy consumption report (power usage across the different machines, Again showing a concertation against all of them via a heat map)</li>
+<li>Quality control for parts (Amount of parts that have failed vs haven&#39;t. Amount reworked, amount pending rework, MTTR, Average Lifespan of tools, Failure of parts against different departments and different stations)</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th><strong>Report Name</strong></th>
+<th><strong>Purpose of Report</strong></th>
+<th><strong>Queries for Report</strong></th>
+<th><strong>Sources for this Data</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Daily floor productionsummary</td>
+<td>Main page to showcase all of the mainfeatures of the application, including showing live updates of data as well as total summary across different ranges of time</td>
+<td>- Show daily production totals<br>- Display shift<br>- Wise performance<br>- Show time-based analysis</td>
+<td>- Worker Clock in Sheet<br>- Tasks<br>- Oracle Database</td>
+</tr>
+<tr>
+<td>Workforce utilisation report</td>
+<td>Page dedicated to showing theinformation of the workers of thiscompany.</td>
+<td>- Employee attendance<br>- Utilisation rate per worker<br>- Work hours per task</td>
+<td>- Worker Time Logs<br>- HR Database</td>
+</tr>
+<tr>
+<td>Energy consumption report</td>
+<td>Another page to demonstrate live data</td>
+<td>- Total energy consumption<br>- Energy usage by department<br>- Efficiency of energy use</td>
+<td>- Energy Meter Data<br>- Building Energy Management System</td>
+</tr>
+<tr>
+<td>Quality control for parts</td>
+<td>Tool for the quality department inorder to view the maintenance of eachof the parts</td>
+<td>- Quality status of parts<br>- Maintenance records<br>- Inspection results</td>
+<td>- Quality Control Database<br>- Maintenance Logs</td>
+</tr>
+</tbody></table>
+<p>Data sources needed.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Data Source Name</strong></th>
+<th><strong>What it Contains</strong></th>
+<th><strong>Type of Data</strong></th>
+<th><strong>Refresh</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Worker Clock In Sheet</td>
+<td>Attendance sheet by department, statingwho they are, what shift they are on andreason for absence if not here</td>
+<td>Excel</td>
+<td>3 times a day</td>
+</tr>
+<tr>
+<td>Energy ConsumptionReport</td>
+<td>Energy Consumption Report against each Machine</td>
+<td>Excel/CSV</td>
+<td>Daily</td>
+</tr>
+<tr>
+<td>Heat Sensor</td>
+<td>Sensor data from measuring Faulty Parts differentsections of the factory floor</td>
+<td>Kafka</td>
+<td>Live</td>
+</tr>
+<tr>
+<td>Live Machining Data</td>
+<td>Data travelling at each location, stating where it&#39;s going,any error codes from station it&#39;s leaving</td>
+<td>Kafka + MSSQL</td>
+<td>Live + archive storeof data</td>
+</tr>
+<tr>
+<td>Repair and Purchase Orders</td>
+<td>Orders for incoming and outgoing parts, Severity of faults, order confirmation, request and received</td>
+<td>Postgres</td>
+<td>Up to 50 times a day</td>
+</tr>
+<tr>
+<td>Tool Storage inventory</td>
+<td>Tools storage so inventory of tools being taken in and outof storage</td>
+<td>Rest API</td>
+<td>30 mins</td>
+</tr>
+<tr>
+<td>Tool Master List</td>
+<td>Master list stating all of the information for tools, needed,like lifespan, IDs, usage cases, from vendor etc.</td>
+<td>Excel/CSV</td>
+<td>Never</td>
+</tr>
+<tr>
+<td>Factory Floor Mappings</td>
+<td>Maps of factory layout, workstations, and machine locations</td>
+<td>JSON</td>
+<td>Never</td>
+</tr>
+</tbody></table>
+<p>There is a script constantly running to create, add delete and cause errors in order to simulate this data across different data sources </p>
+
+`
+                },
+                
+                project: {
+                    title: 'Optimisations',
+                    text: `
+<h5>Reading from sources live</h5>
+<ul>
+<li>Reading from databases and static files in a number of different ways depending on the source:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th><strong>Data Source</strong></th>
+<th><strong>Native Change Tracking?</strong></th>
+<th><strong>Can Track Appended / Updated Data?</strong></th>
+<th><strong>Common Techniques</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Databases (SQL, NoSQL)</strong></td>
+<td>Replication Logs (CDC, WAL, Binlog, etc.)</td>
+<td>Yes</td>
+<td>CDC, Binlogs, WAL, Triggers</td>
+</tr>
+<tr>
+<td><strong>CSV / Text Files</strong></td>
+<td>No built-in tracking</td>
+<td>Only if appending</td>
+<td>File size checks, Line offsets, Hashing</td>
+</tr>
+<tr>
+<td><strong>Excel Files (XLSX, CSV)</strong></td>
+<td>No built-in tracking</td>
+<td>Appending possible</td>
+<td>Versioning, Metadata timestamps</td>
+</tr>
+<tr>
+<td><strong>XML / JSON Files</strong></td>
+<td>No built-in tracking</td>
+<td>Appending possible</td>
+<td>Diffing, Last Modified Time</td>
+</tr>
+<tr>
+<td><strong>Parquet / Avro</strong> (Big Data Formats)</td>
+<td>Some support for metadata</td>
+<td>Yes</td>
+<td>Partitioning, Append-Only Logs</td>
+</tr>
+<tr>
+<td><strong>Message Queues (Kafka, Pulsar, RabbitMQ)</strong></td>
+<td>Built-in offset tracking</td>
+<td>Yes</td>
+<td>Kafka Offsets, Consumer State</td>
+</tr>
+<tr>
+<td>So mainly using replication logs for reading live data using <strong>Debezium</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>For static files, for both incremental batches and reading from live data sources, it can depend:</p>
+<ul>
+<li>You can check if it has even refreshed, via the <strong>modified time date</strong> and version of the actual file, and if it hasn&#39;t it can been used regularly.</li>
+<li>For logs, or files expected to only append, can keep a <strong>line offset</strong> and hash the data up to that point, so if the file updates and you hash that same amount of data, that data has changed and therefore anything appended is new that can be added (of course if the size of the file is the same, this is unnecessary)</li>
+</ul>
+<h4><strong>Redis Cache</strong> vs <strong>Postgres</strong></h4>
+<p>Each real time view will have </p>
+<h5>Combining query data from</h5>
+<table>
+<thead>
+<tr>
+<th><strong>Query Type</strong></th>
+<th><strong>Complexity</strong></th>
+<th><strong>Easy to Update?</strong></th>
+<th><strong>How It&#39;s Handled</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Simple Aggregations</strong> (SUM, COUNT, AVG, MIN, MAX)</td>
+<td>Low</td>
+<td>Easy</td>
+<td>Uses <strong>incremental updates</strong> (just update a counter or sum)</td>
+</tr>
+<tr>
+<td><strong>Sliding &amp; Tumbling Windows</strong> (e.g., &quot;Count last 5 minutes of data&quot;)</td>
+<td>Medium</td>
+<td>Kinda</td>
+<td>Uses <strong>windowed state storage</strong>, discarding old data when the window expires</td>
+</tr>
+<tr>
+<td><strong>Joins Between Streams</strong> (e.g., &quot;Match transactions with user profiles&quot;)</td>
+<td>High</td>
+<td>Harder</td>
+<td>Stores state and waits for matching data (can require a lot of memory)</td>
+</tr>
+</tbody></table>
+<p>- </p>
+
+                    `
+                },
+                future:{
+                    title: `What's left to do`,
+                    text: `
+                    <p>There are many things still left to do before project demonstration:</p>
+                    <ul>
+                        <li>Front end is a mess so want to showcase that more in terms of functionality and usability.</li>
+                        <li>Want to demonstrate data as it occurs live in the front end.</li>
+                        <li>Want to set up different performance test metrics to measure performance:
+                            <ul>
+                                <li>With Apache benchmark to see how it handles many concurrent requests, toggling on and off different efficiency metrics like speed layer, incremental batching, etc.</li>
+                            </ul>
+                        </li>
+                        <li>Add more visual components and editing.</li>
+                    </ul>
+                    
+                    `
+                }
+            };
+
+            const mainContent = document.getElementById('doc-content');
+            mainContent.innerHTML = `<h1 class="doc-header">${content[section].title}</h1>${content[section].text}`;
+
+            const links = document.querySelectorAll('.sidebar nav ul li a');
+            links.forEach(link => link.classList.remove('active'));
+            document.querySelector(`a[id="${section}"]`).classList.add('active');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showContent('home');
+        });
+    </script>
+
+
+</html>

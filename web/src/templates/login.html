@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="static/css/base.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
+    <style>
+        body{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        main{
+            display: flex;
+            justify-content: center;
+            gap:100px;
+            margin:0px 50px;
+        }
+        .opening{
+            width:clamp(300px, 50%, 800px);
+        }
+        .login{
+            width:clamp(300px, 50%, 800px);
+        }
+
+        .btn-primary, .btn-default{
+            width: 100%;
+        }
+
+        .btn-primary {
+            display: block;
+            text-align: center;
+            padding: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .links{
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem; 
+        }
+        
+        
+       
+    </style>
+</head>
+<body>
+
+    <main>
+        <div class="opening">
+            <div class ="project-opening">
+                <h1 class="opening-title">Welcome to MyProject</h1>
+                <p class="opening-text">This web application aims to combine data from multiple different sources across an enterprise,
+                    in order to analyse and generate reports on both realtime and historical data.</p>
+            </div>
+            <div class="project-information">
+                <h2 class="opening-subtitle">Get Started</h2>
+                <a class="btn btn-primary" href="/about" >Docs</a>
+            </div>
+        </div>
+
+        <div class="login container">
+            <form class="form-container"action="/home" method="get">
+                <div>
+                    <label for="workspace">Workspace:</label>
+                    <input type="text" id="workspace" name="workspace" required>
+                </div>
+                <div>
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div>
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div>
+                    <button class ="btn btn-default" type="submit">Sign In</button>
+                </div>
+                <div class="links">
+                    <a href="/reset-password">Reset Password</a>
+                    <a href="/request-workspace">Request New Workspace</a>
+                </div>
+            </form>
+        </div>
+    </main>
+</body>
+</html>
