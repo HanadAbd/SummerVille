@@ -1,1 +1,632 @@
 {{template "header" .}}
+
+<style>
+    :root {
+        --page-height: calc(100vh - 120px);
+    }
+
+    main {
+        display: flex;
+        justify-content: center;
+        height: var(--page-height);
+    }
+    h2{
+        color:var(--text-color);
+    }
+
+    /* Sidebar Styles */
+    .sidebar {
+        position: static;
+        display: flex;
+        flex-direction: column;
+        width: 20%;
+        padding: 10px;
+        background-color: var(--container-color);
+        max-height: var(--page-height);
+        overflow-y: auto;
+    }
+
+    .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .side-list {
+        width: 100%;
+        overflow-y: auto;
+    }
+
+    .side-list-header {
+        font-weight: bold;
+        margin: 10px 0;
+        padding: 5px;
+        background-color: var(--accent-color);
+        color: var(--background-color);
+    }
+
+    .side-item {
+        display: grid;
+        grid-template-columns: 0.7fr 0.3fr;
+        align-items: center;
+        margin: 0;
+        padding: 10px;
+        border-bottom: 1px solid var(--divide-color);
+        cursor: pointer;
+        color: var(--text-color)
+    }
+
+    .side-item:hover {
+        background-color: var(--accent-color);
+        color: var(--background-color);
+    }
+
+    .side-item-title {
+        font-weight: bold;
+    }
+
+    .side-item-btn {
+        padding: 3px 8px;
+        margin-left: 5px;
+        cursor: pointer;
+        background-color: var(--accent-color);
+        color: var(--background-color);
+        border: none;
+        border-radius: 3px;
+    }
+
+    .side-item-content {
+        grid-column: span 2;
+        display: none;
+        padding: 5px 10px;
+        background-color: var(--divide-color);
+    }
+
+    /* Main Content Styles */
+    .main-content {
+        width: 78%;
+        margin:20px;
+        display: flex;
+        flex-direction: column;
+        max-height: var(--page-height);
+        
+    }
+
+    .query-editor {
+        margin-bottom: 15px;
+    }
+
+    .query-textarea {
+        width: 100%;
+        height: 250px;
+        padding: 10px;
+        font-family: monospace;
+        border: 1px solid var(--divide-color);
+        border-radius: 5px;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        resize: vertical;
+    }
+
+    .query-buttons {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        cursor: pointer;
+        background-color: var(--accent-color);
+        color: var(--background-color);
+        border: none;
+        border-radius: 4px;
+    }
+
+    .btn:hover {
+        opacity: 0.9;
+    }
+
+    .results-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .input-parameters {
+        height: clamp(300px, 50%, 800px);
+        width: 25%;
+        margin-right: 10px;
+    }
+
+    .results-tabs {
+        display: block;
+        width: 100%;
+    }
+
+    .container {
+        background-color: var(--container-color);
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+    }
+
+    .container-header {
+        margin-top: 0;
+        padding-bottom: 5px;
+        border-bottom: 1px solid var(--divide-color);
+    }
+
+    /* Output Table Styles */
+    .table-container {
+        overflow-x: auto;
+        margin-top: 10px;
+    }
+
+    #queryResultTable,
+    .parameters-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    #queryResultTable th,
+    #queryResultTable td,
+    .parameters-table th,
+    .parameters-table td {
+        border: 1px solid var(--text-color);
+        padding: 8px;
+        text-align: left;
+    }
+
+    #queryResultTable th,
+    .parameters-table th {
+        background-color: var(--divide-color);
+        font-weight: bold;
+    }
+
+    #queryResultTable tr:nth-child(even),
+    .parameters-table tr:nth-child(even) {
+        background-color: var(--divide-color);
+    }
+
+    #queryResultTable tr:hover,
+    .parameters-table tr:hover {
+        background-color: rgba(122, 104, 228, 0.3);
+    }
+
+    /* Tab Container Styles */
+    .tab-navigation {
+        display: flex;
+        gap: 0px;
+        background-color: var(--accent-color);
+    }
+
+    .tab-container {
+        padding: 0px;
+    }
+
+    .tab-navigation button {
+        min-width: 100px;
+        width: auto;
+        padding: 16px 32px;
+        border: none;
+        font-size: 1rem;
+        cursor: pointer;
+        background: var(--accent-colors);
+        color: var(--background-color);
+    }
+
+    .tab-navigation button.active {
+        background: var(--container-color);
+        color: var(--text-color);
+    }
+
+    .tab-content {
+        display: none;
+        padding: 16px;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Modal Styles */
+    .dialog-modal {
+        margin-bottom: 15px;
+    }
+
+    dialog {
+        border: none;
+        border-radius: 5px;
+        padding: 20px;
+        background-color: var(--container-color);
+        color: var(--text-color);
+        max-width: 500px;
+    }
+
+    .modal-content {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .input-group {
+        margin-bottom: 10px;
+    }
+
+    .input-group label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .input-group input,
+    .input-group select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--divide-color);
+        border-radius: 4px;
+        background-color: var(--background-color);
+        color: var(--text-color);
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .view-options {
+        display: none;
+        margin-top: 10px;
+        padding: 10px;
+        border: 1px solid var(--divide-color);
+        border-radius: 4px;
+    }
+</style>
+
+<main>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Database Objects</h2>
+            <button class="btn" onclick="document.getElementById('saveQueryModal').showModal();">New Query</button>
+        </div>
+
+        <!-- Saved Queries Section -->
+        <div class="side-list-header">Saved Queries</div>
+        <ul class="side-list" id="savedQueriesList">
+            <li class="side-item">
+                <span class="side-item-title">Daily Production Summary</span>
+                <div>
+                    <button class="side-item-btn">Edit</button>
+                </div>
+                <div class="side-item-content">
+                    <p>Created: 2023-05-15</p>
+                    <p>Type: Regular Query</p>
+                </div>
+            </li>
+            <li class="side-item">
+                <span class="side-item-title">Worker Performance</span>
+                <div>
+                    <button class="side-item-btn">Edit</button>
+                </div>
+                <div class="side-item-content">
+                    <p>Created: 2023-05-10</p>
+                    <p>Type: Materialized View</p>
+                </div>
+            </li>
+        </ul>
+
+        <!-- Tables Section -->
+        <div class="side-list-header">Tables</div>
+        <ul class="side-list" id="tablesList">
+            <li class="side-item">
+                <span class="side-item-title">prod.data_sources</span>
+            </li>
+            <li class="side-item">
+                <span class="side-item-title">prod.queries</span>
+            </li>
+            <li class="side-item">
+                <span class="side-item-title">prod.input_parameters</span>
+            </li>
+            <li class="side-item">
+                <span class="side-item-title">prod.sources</span>
+            </li>
+        </ul>
+
+        <!-- Views Section -->
+        <div class="side-list-header">Views</div>
+        <ul class="side-list" id="viewsList">
+            <li class="side-item">
+                <span class="side-item-title">prod.active_sources</span>
+            </li>
+            <li class="side-item">
+                <span class="side-item-title">prod.recent_queries</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container query-editor">
+            <h2 class="container-header">Query Editor</h2>
+            <textarea id="queryInput" class="query-textarea" placeholder="Write your SQL query here..." onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); document.getElementById('runQueryBtn').click(); }"></textarea>
+
+            <div class="query-buttons">
+                <button id="runQueryBtn" class="btn">Run Query</button>
+                <button id="saveQueryBtn" class="btn"
+                    onclick="document.getElementById('saveQueryModal').showModal();">Save Query</button>
+                <button id="clearQueryBtn" class="btn">Clear</button>
+            </div>
+        </div>
+
+        <div class="results-row">
+            <div class="container input-parameters">
+                <h2 class="container-header">Input Parameters</h2>
+                
+                <!-- <div class="input-group">
+                    <label for="param_start_date">start_date:</label>
+                    <input type="date" id="param_start_date" value="2023-05-08">
+                </div>
+                <div class="input-group">
+                    <label for="param_end_date">end_date:</label>
+                    <input type="date" id="param_end_date" value="2023-05-15">
+                </div>
+                <div class="input-group">
+                    <label for="param_machine_id">machine_id:</label>
+                    <input type="number" id="param_machine_id" placeholder="Optional">
+                </div> -->
+            </div>
+            <div class="container tab-container results-tabs">
+                <div class="tab-navigation">
+                    <button data-tab="1" class="active">Query Results</button>
+                    <button data-tab="2">Metadata</button>
+                    <button data-tab="3">Dependencies</button>
+                </div>
+                <div class="tab-contents">
+
+                    <div class="tab-content active" data-tab="1">
+                        <div class="table-container">
+                            <table id="queryResultTable">
+                               
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" data-tab="2">
+                        <h3>Metadata for Speed Layer</h3>
+                        <div class="input-group">
+                            <label for="incrementalField">Incremental Field:</label>
+                            <select id="incrementalField">
+                                <option value="timestamp">timestamp</option>
+                                <option value="created_at">created_at</option>
+                                <option value="updated_at">updated_at</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="lastValue">Last Value:</label>
+                            <input type="text" id="lastValue" value="2023-05-15 12:00:00" readonly>
+                        </div>
+                        <div class="input-group">
+                            <label for="updateFrequency">Update Frequency:</label>
+                            <select id="updateFrequency">
+                                <option value="60">Every minute</option>
+                                <option value="300">Every 5 minutes</option>
+                                <option value="3600">Every hour</option>
+                                <option value="86400">Daily</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>
+                                <input type="checkbox" id="materializedViewCheck"> Create as materialized view
+                            </label>
+                        </div>
+                        <div class="view-options" id="materializedViewOptions">
+                            <div class="input-group">
+                                <label for="refreshSchedule">Refresh Schedule:</label>
+                                <select id="refreshSchedule">
+                                    <option value="immediate">Immediately after source update</option>
+                                    <option value="hourly">Hourly</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" data-tab="3">
+                        <h3>Data Source Dependencies</h3>
+                        <div class="table-container">
+                            <table class="parameters-table">
+                                <thead>
+                                    <tr>
+                                        <th>Data Source</th>
+                                        <th>Last Refresh</th>
+                                        <th>Refresh Frequency</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Worker Clock In Sheet</td>
+                                        <td>2023-05-15 07:00:00</td>
+                                        <td>3 times a day</td>
+                                        <td>Active</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Energy Consumption Report</td>
+                                        <td>2023-05-15 00:00:00</td>
+                                        <td>Daily</td>
+                                        <td>Active</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Heat Sensor</td>
+                                        <td>2023-05-15 12:30:00</td>
+                                        <td>Live</td>
+                                        <td>Active</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="input-group">
+                            <label>Refresh after data source update:</label>
+                            <div>
+                                <label>
+                                    <input type="checkbox" name="refreshSource" value="Worker Clock In Sheet"> Worker
+                                    Clock In Sheet
+                                </label>
+                            </div>
+                            <div>
+                                <label>
+                                    <input type="checkbox" name="refreshSource" value="Energy Consumption Report">
+                                    Energy Consumption Report
+                                </label>
+                            </div>
+                            <div>
+                                <label>
+                                    <input type="checkbox" name="refreshSource" value="Heat Sensor"> Heat Sensor
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <dialog id="saveQueryModal">
+        <div class="modal-content">
+            <h2>Save Query</h2>
+            <div class="input-group">
+                <label for="queryName">Query Name:</label>
+                <input type="text" id="queryName" placeholder="Enter a name for your query">
+            </div>
+            <div class="input-group">
+                <label for="queryDescription">Description:</label>
+                <textarea id="queryDescription" rows="3" placeholder="Enter a description"></textarea>
+            </div>
+            <div class="input-group">
+                <label>
+                    <input type="checkbox" id="saveAsMaterialized"> Save as materialized view
+                </label>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn" onclick="document.getElementById('saveQueryModal').close()">Cancel</button>
+                <button class="btn" id="confirmSaveBtn">Save</button>
+            </div>
+        </div>
+    </dialog>
+
+    <script>
+        document.querySelectorAll('.tab-navigation button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+
+                // Update active tab button
+                document.querySelectorAll('.tab-navigation button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+
+                // Show selected tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.querySelector(`.tab-content[data-tab="${tabId}"]`).classList.add('active');
+            });
+        });
+
+        document.getElementById('materializedViewCheck').addEventListener('change', function () {
+            const options = document.getElementById('materializedViewOptions');
+            options.style.display = this.checked ? 'block' : 'none';
+        });
+
+        document.querySelectorAll('.side-item-title').forEach(item => {
+            item.addEventListener('click', function () {
+                const content = this.parentElement.querySelector('.side-item-content');
+                if (content) {
+                    content.style.display = content.style.display === 'block' ? 'none' : 'block';
+                }
+            });
+        });
+
+        document.querySelectorAll('.side-item-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const queryName = this.parentElement.parentElement.querySelector('.side-item-title').textContent;
+                document.getElementById('queryInput').value = `-- Loading query: ${queryName}\nSELECT * FROM production_data\nWHERE date > '2023-01-01'\nORDER BY date DESC;`;
+            });
+        });
+
+        document.getElementById('clearQueryBtn').addEventListener('click', function () {
+            document.getElementById('queryInput').value = '';
+        });
+
+        document.getElementById('runQueryBtn').addEventListener('click', function () {
+            const query = document.querySelector("#queryInput").value 
+
+            if (query.trim() === '') {
+                alert('Please enter a query to run');
+                return;
+            };
+            fetch('http://localhost:8080/api/query/run', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+
+                    populateTable(data);
+
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while executing the query');
+                    const table = document.getElementById('queryResultTable');
+                    table.innerHTML = '';
+                });
+        });
+
+        // Confirm save button functionality
+        document.getElementById('confirmSaveBtn').addEventListener('click', function () {
+            const queryName = document.getElementById('queryName').value;
+            if (queryName.trim() === '') {
+                alert('Please enter a query name');
+                return;
+            }
+
+            alert(`Query "${queryName}" saved successfully!`);
+            document.getElementById('saveQueryModal').close();
+        });
+
+        function populateTable(data){
+            const table = document.getElementById('queryResultTable');
+            table.innerHTML = '';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            data.columns.forEach(column => {
+                const th = document.createElement('th');
+                th.textContent = column.name + " (" + column.type + ")";
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            data.results.forEach(row => {
+                const tr = document.createElement('tr');
+                data.columns.forEach(column => {
+                    const td = document.createElement('td');
+                    td.textContent = row[column.name];
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+        }
+    </script>
+</main>

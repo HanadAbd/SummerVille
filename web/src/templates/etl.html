@@ -1,198 +1,526 @@
 {{template "header" .}}
-<div class="container">
-    <div class="sidebar">
-        <button id="addETLBtn">Add New ETL Process</button>
-        <ul id="etlProcessList">
-            <li class="etl-process">
-                <span class="etl-process-title">ETL Process 1</span>
-                <button class="deleteBtn">Delete</button>
-                <div class="etl-process-content">
-                    <p>Details about ETL Process 1</p>
-                </div>
-            </li>
-            <li class="etl-process">
-                <span class="etl-process-title">ETL Process 2</span>
-                <button class="deleteBtn">Delete</button>
-                <div class="etl-process-content">
-                    <p>Details about ETL Process 2</p>
-                </div>
-            </li>
-            <!-- More ETL processes as needed -->
-        </ul>
-    </div>
-    <div class="main-content">
-        <h2>ETL Process Name</h2>
-        <div class="card">
-            <h3>Refresh Time</h3>
-            <p id="refreshTime">Select an ETL process to see its refresh time.</p>
-            <button id="manualRefreshBtn">Manual Refresh</button>
-        </div>
-        <div class="tabs">
-            <button class="tablinks" onclick="openTab(event, 'DataSource')">Data Source</button>
-            <button class="tablinks" onclick="openTab(event, 'Transformation')">Transformation</button>
-            <button class="tablinks" onclick="openTab(event, 'Performance')">Performance</button>
-        </div>
-        <div id="DataSource" class="tabcontent">
-            <h3>Data Source</h3>
-            <p id="dataSourceInfo">Select an ETL process to see its data source information.</p>
-        </div>
-        <div id="Transformation" class="tabcontent">
-            <h3>Transformation</h3>
-            <p id="transformationInfo">Select an ETL process to see its transformation information.</p>
-        </div>
-        <div id="Performance" class="tabcontent">
-            <h3>Performance</h3>
-            <p id="performanceInfo">Select an ETL process to see its performance information.</p>
-        </div>
-    </div>
-</div>
-
-<!-- Modal for adding new ETL process -->
-<div id="addETLModal" class="modal">
-    <div class="modal-content">
-        <span class="closeBtn">&times;</span>
-        <h2>Add New ETL Process</h2>
-        <form id="addETLForm">
-            <label for="etlName">ETL Process Name:</label>
-            <input type="text" id="etlName" name="etlName" required>
-            <label for="dataSource">Data Source:</label>
-            <input type="text" id="dataSource" name="dataSource" required>
-            <label for="refreshTime">Refresh Time:</label>
-            <input type="text" id="refreshTime" name="refreshTime" required>
-            <label for="incrementalTime">Incremental Time:</label>
-            <input type="text" id="incrementalTime" name="incrementalTime" required>
-            <button type="submit">Submit</button>
-        </form>
-        <p id="formStatus"></p>
-    </div>
-</div>
 
 <style>
-    .container {
+    main {
+        padding: 2rem;
+        width: clamp(300px, 80%, 1400px);
+        margin: 0 auto;
+        height: 88vh;
+        overflow-y: auto;
+    }
+    .main-container {
+        width: 100%;
+        height: clamp(300px, 80%, 800px);
+        background-color: var(--container-color);
+        margin-bottom: 30px;
+              display: inline-block;
+            position: relative;
+
+    }
+    .tab-navigation{
         display: flex;
-        height: 100vh;
-        overflow: hidden;
+        gap: 0px;
+        background-color: var(--accent-color);
     }
-
-    .sidebar {
-        width: 20%;
-        padding: 10px;
-        background-color: #333B59;
-        overflow-y: auto;
+    .tab-container {
+      padding: 0px;
     }
-
-    .main-content {
-        width: 70%;
-        padding: 10px;
-        overflow-y: auto;
-    }
-
-    .etl-process {
-        margin: 10px 0;
-        padding: 10px;
-        border-radius: 5px;
-        box-shadow: 0 5px 0 rgba(0, 0, 0, 0.4);
-    }
-
-    .etl-process-title {
-        font-weight: bold;
-        cursor: pointer;
-    }
-
-    .etl-process-content {
-        display: none;
-        margin-top: 10px;
-    }
-
-    .closeBtn {
-        color: #aaa;
-        float: right;
-        font-size: 28px;
-        font-weight: bold;
-    }
-
-    .closeBtn:hover,
-    .closeBtn:focus {
-        color: black;
-        text-decoration: none;
-        cursor: pointer;
-    }
-
-    .card {
-        margin: 20px 0;
-        padding: 20px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-    }
-
-    .tabs {
-        margin: 20px 0;
-    }
-
-    .tablinks {
-        background-color: #f1f1f1;
+    .tab-navigation button {
+        min-width: 100px;
+        width: auto;
+        padding: 16px 32px;
         border: none;
-        outline: none;
+        font-size: 1rem;
         cursor: pointer;
-        padding: 10px 20px;
-        transition: 0.3s;
+        background: var(--accent-colors);
+        color: var(--background-color);
     }
-
-    .tablinks:hover {
-        background-color: #ddd;
+    .tab-navigation button.active {
+        background: var(--container-color);
+        color: var(--text-color);
     }
-
-    .tabcontent {
+    .tab-content {
         display: none;
-        padding: 20px;
-        border: 1px solid #ccc;
-        border-top: none;
+        padding: 16px;
     }
+    .tab-content.active {
+        display: block;
+    }
+
+    
+    #etl-timeline {
+        width: 100%;
+            height: 100%;
+            display: block; /* Removes extra spacing */
+            position: absolute;
+            top: 0;
+            left: 0;
+    }
+
+    .query-toggle {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        align-items: center;
+        background: rgba(255,255,255,0.8);
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
+    
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 22px;
+        margin-right: 10px;
+    }
+    
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+    }
+    
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+    }
+    
+    input:checked + .slider {
+        background-color: #2196F3;
+    }
+    
+    input:checked + .slider:before {
+        transform: translateX(18px);
+    }
+    
+    .slider.round {
+        border-radius: 22px;
+    }
+    
+    .slider.round:before {
+        border-radius: 50%;
+    }
+    .side-flex{
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        height: 100%;
+    }
+    
 </style>
 
+<main>
+    <div class="main-container">
+        <div class="main-timeline">
+            <canvas id="etl-timeline"></canvas>
+            <div class="query-toggle">
+            <label class="switch">
+                <input type="checkbox" id="query-toggle" title="Toggle to show or hide queries">
+                <span class="slider round"></span>
+            </label>
+            <span>Show Queries</span>
+            </div>
+            <div id="node-tooltip" style="display: none; position: absolute; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; pointer-events: none; z-index: 10;"></div>
+
+            
+        </div>
+        <div class ="main-editor" style="display: none;">
+
+        </div>
+    </div>
+
+    <section class="sidebar">
+        <div class="side-flex">
+            <button class="btn btn-primary close" onclick="
+            document.querySelector('.sidebar').style.display = 'none'
+            document.querySelector('main').style.margin = '0 auto'">Close
+            </button>
+
+            <div class="side-timeline">
+                <canvas id="etl-timeline"></canvas>
+            </div>
+            <div class ="pipeline-history">
+                <textarea name="history" id="history" cols="30" rows="10" placeholder="Pipeline history"></textarea>
+            </div>
+        </div>
+    </section>
+
+    <div class="container tab-container cont-performance">
+        <div class="tab-navigation">
+            <button data-tab="1">Refreshes</button>
+            <button data-tab="2">Performance</button>
+            <button data-tab="3">Query Usage</button>
+        </div>
+        <div class="tab-contents">
+            <div class="tab-content" data-tab="1">Content for Container 1, Tab 1</div>
+            <div class="tab-content" data-tab="2">Content for Container 1, Tab 2</div>
+            <div class="tab-content" data-tab="3">Content for Container 1, Tab 3</div>
+
+        </div>  
+    </div>
+</main> 
+
 <script>
-    document.getElementById('addETLBtn').onclick = function () {
-        document.getElementById('addETLModal').style.display = 'block';
+    const canvas = document.getElementById('etl-timeline');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    const ctx = canvas.getContext("2d");
+
+    const pipelineData = {
+        nodes: [
+            // Extraction nodes
+            { id: 'e1', name: 'Data Source', type: 'extraction', x: 100, y: 80, width: 60, height: 60, details: 'Raw data from API' },
+            { id: 'e2', name: 'Filter', type: 'extraction', x: 200, y: 100, width: 50, height: 50, details: 'Initial data filtering' },
+            { id: 'e3', name: 'Validate', type: 'extraction', x: 280, y: 120, width: 50, height: 50, details: 'Schema validation' },
+
+            // Transformation nodes
+            { id: 't1', name: 'Clean', type: 'transformation', x: 100, y: 240, width: 50, height: 50, details: 'Data cleaning process' },
+            { id: 't2', name: 'Normalize', type: 'transformation', x: 190, y: 230, width: 50, height: 50, details: 'Data normalization' },
+            { id: 't3', name: 'Type Convert', type: 'transformation', x: 280, y: 250, width: 50, height: 50, details: 'Data type conversion' },
+            { id: 't4', name: 'Enrich', type: 'transformation', x: 370, y: 240, width: 50, height: 50, details: 'Data enrichment' },
+
+            // Load nodes
+            { id: 'l1', name: 'Users View', type: 'load', x: 150, y: 400, width: 70, height: 60, details: 'Materialized users view' },
+            { id: 'l2', name: 'Products View', type: 'load', x: 300, y: 390, width: 70, height: 60, details: 'Materialized products view' },
+
+            // Query nodes
+            { id: 'q1', name: 'User Query', type: 'query', x: 130, y: 550, width: 60, height: 40, details: 'SELECT * FROM users' },
+            { id: 'q2', name: 'User Stats', type: 'query', x: 220, y: 560, width: 60, height: 40, details: 'User analytics query' },
+            { id: 'q3', name: 'Product Query', type: 'query', x: 300, y: 550, width: 60, height: 40, details: 'SELECT * FROM products' },
+        ],
+        edges: [
+            // Extraction connections
+            { from: 'e1', to: 'e2' },
+            { from: 'e2', to: 'e3' },
+
+            // Connections to transformation
+            { from: 'e3', to: 't1' },
+            { from: 'e3', to: 't2' },
+
+            // Transformation connections
+            { from: 't1', to: 't3' },
+            { from: 't2', to: 't4' },
+
+            // Connections to load
+            { from: 't3', to: 'l1' },
+            { from: 't4', to: 'l2' },
+
+            // Query connections
+            { from: 'l1', to: 'q1' },
+            { from: 'l1', to: 'q2' },
+            { from: 'l2', to: 'q3' },
+        ]
     };
 
-    document.getElementsByClassName('closeBtn')[0].onclick = function () {
-        document.getElementById('addETLModal').style.display = 'none';
-    };
+    // Pan and zoom state
+    let panOffset = { x: 0, y: 0 };
+    let scale = 1;
+    let isDragging = false;
+    let lastMousePos = { x: 0, y: 0 };
+    let selectedNode = null;
+    const tooltip = document.getElementById('node-tooltip');
+    const queryToggle = document.getElementById('query-toggle');
+    let showQueries = false;
 
-    window.onclick = function (event) {
-        if (event.target == document.getElementById('addETLModal')) {
-            document.getElementById('addETLModal').style.display = 'none';
+    // Section heights
+    const sectionHeight = canvas.height / 4;
+
+    // Function to draw the ETL pipeline
+    function drawPipeline() {
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Apply transformations
+        ctx.save();
+        ctx.translate(panOffset.x, panOffset.y);
+        ctx.scale(scale, scale);
+
+        // Draw sections
+        drawSections();
+
+        // Draw edges
+        drawEdges();
+
+        // Draw nodes
+        drawNodes();
+
+        ctx.restore();
+    }
+
+    // Draw section backgrounds and labels
+    function drawSections() {
+        const sections = ['Extracted', 'Transformed', 'Loaded', 'Query'];
+        const colors = ['rgba(200,230,200,0.3)', 'rgba(200,200,230,0.3)', 'rgba(230,200,200,0.3)', 'rgba(230,230,200,0.3)'];
+
+        for (let i = 0; i < sections.length; i++) {
+            // Skip query section if toggle is off
+            if (i === 3 && !showQueries) continue;
+
+            const y = i * sectionHeight / scale;
+            const height = sectionHeight / scale;
+
+            // Draw section background
+            ctx.fillStyle = colors[i];
+            ctx.fillRect(0, y, canvas.width / scale, height);
+
+            // Draw section label
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.font = `${16 / scale}px Arial`;
+            ctx.fillText(sections[i], 10, y + 30 / scale);
         }
-    };
+    }
 
-    document.getElementById('addETLForm').onsubmit = function (event) {
-        event.preventDefault();
-        // Add logic to handle form submission and display success or failure message
-        document.getElementById('formStatus').innerText = 'Form submitted successfully!';
-    };
+    // Draw nodes
+    function drawNodes() {
+        pipelineData.nodes.forEach(node => {
+            // Skip query nodes if toggle is off
+            if (node.type === 'query' && !showQueries) return;
 
-    document.querySelectorAll('.etl-process-title').forEach(function (title) {
-        title.onclick = function () {
-            var content = this.nextElementSibling;
-            if (content.style.display === 'block') {
-                content.style.display = 'none';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1 / scale;
+            
+            // Use squares for data sources, circles for everything else
+            if (node.type === 'extraction' && !node.parentId) { // Top-level extraction nodes
+                // Draw as square
+                ctx.fillStyle = getNodeColor(node.type);
+                ctx.beginPath();
+                ctx.rect(node.x, node.y, node.width, node.height);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Only show names for data sources
+                ctx.fillStyle = 'black';
+                ctx.font = `${12 / scale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillText(node.name, node.x + node.width / 2, node.y + node.height / 2);
             } else {
-                content.style.display = 'block';
+                // Draw as circle
+                const radius = node.width / 2;
+                ctx.fillStyle = getNodeColor(node.type);
+                ctx.beginPath();
+                ctx.arc(node.x + radius, node.y + radius, radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                // No text for non-source nodes
             }
-        };
+            
+            // Highlight selected node
+            if (selectedNode && node.id === selectedNode.id) {
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 3 / scale;
+                if (node.type === 'extraction' && !node.parentId) {
+                    ctx.strokeRect(node.x, node.y, node.width, node.height);
+                } else {
+                    const radius = node.width / 2;
+                    ctx.beginPath();
+                    ctx.arc(node.x + radius, node.y + radius, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        });
+    }
+
+    // Draw edges between nodes
+    function drawEdges() {
+        pipelineData.edges.forEach(edge => {
+            const fromNode = pipelineData.nodes.find(n => n.id === edge.from);
+            const toNode = pipelineData.nodes.find(n => n.id === edge.to);
+
+            // Skip edges to/from query nodes if toggle is off
+            if ((fromNode.type === 'query' || toNode.type === 'query') && !showQueries) return;
+
+            ctx.strokeStyle = 'rgba(100,100,100,0.7)';
+            ctx.lineWidth = 2 / scale;
+
+            // Draw the line
+            ctx.beginPath();
+            ctx.moveTo(fromNode.x + fromNode.width / 2, fromNode.y + fromNode.height);
+            ctx.lineTo(toNode.x + toNode.width / 2, toNode.y);
+            ctx.stroke();
+
+            // Draw arrow
+            const arrowSize = 5 / scale;
+            const angle = Math.atan2(
+                toNode.y - (fromNode.y + fromNode.height),
+                toNode.x + toNode.width / 2 - (fromNode.x + fromNode.width / 2)
+            );
+
+            ctx.beginPath();
+            ctx.moveTo(toNode.x + toNode.width / 2, toNode.y);
+            ctx.lineTo(
+                toNode.x + toNode.width / 2 - arrowSize * Math.cos(angle - Math.PI / 6),
+                toNode.y - arrowSize * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.lineTo(
+                toNode.x + toNode.width / 2 - arrowSize * Math.cos(angle + Math.PI / 6),
+                toNode.y - arrowSize * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.closePath();
+            ctx.fill();
+        });
+    }
+
+    // Get node color based on type
+    function getNodeColor(type) {
+        switch (type) {
+            case 'extraction': return 'rgba(100,200,100,0.8)';
+            case 'transformation': return 'rgba(100,100,200,0.8)';
+            case 'load': return 'rgba(200,100,100,0.8)';
+            case 'query': return 'rgba(200,200,100,0.8)';
+            default: return 'rgba(150,150,150,0.8)';
+        }
+    }
+
+    // Check if mouse is over a node
+    function getNodeAtPosition(x, y) {
+        // Adjust coordinates for pan and zoom
+        x = (x - panOffset.x) / scale;
+        y = (y - panOffset.y) / scale;
+
+        for (let i = pipelineData.nodes.length - 1; i >= 0; i--) {
+            const node = pipelineData.nodes[i];
+
+            // Skip query nodes if toggle is off
+            if (node.type === 'query' && !showQueries) continue;
+
+            if (x >= node.x && x <= node.x + node.width &&
+                y >= node.y && y <= node.y + node.height) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    // Mouse move handler
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Handle dragging
+        if (isDragging) {
+            const dx = mouseX - lastMousePos.x;
+            const dy = mouseY - lastMousePos.y;
+
+            panOffset.x += dx;
+            panOffset.y += dy;
+
+            // Limit panning
+            const maxPan = canvas.width * 0.5;
+            panOffset.x = Math.max(Math.min(panOffset.x, maxPan), -maxPan);
+            panOffset.y = Math.max(Math.min(panOffset.y, maxPan), -maxPan);
+
+            lastMousePos = { x: mouseX, y: mouseY };
+            drawPipeline();
+        } else {
+            // Check for hover
+            const node = getNodeAtPosition(mouseX, mouseY);
+
+            if (node) {
+                canvas.style.cursor = 'pointer';
+                // Show tooltip
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.clientX + 10) + 'px';
+                tooltip.style.top = (e.clientY + 10) + 'px';
+                tooltip.textContent = `${node.name}: ${node.details}`;
+            } else {
+                canvas.style.cursor = 'default';
+                tooltip.style.display = 'none';
+            }
+        }
     });
 
-    function openTab(evt, tabName) {
-        var i, tabcontent, tablinks;
-        tabcontent = document.getElementsByClassName("tabcontent");
-        for (i = 0; i < tabcontent.length; i++) {
-            tabcontent[i].style.display = "none";
+    // Mouse down handler
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const node = getNodeAtPosition(mouseX, mouseY);
+
+        if (node) {
+            selectedNode = node;
+            if (node.type === 'query') {
+                console.log(`Query selected: ${node.name}`);
+            } else {
+                document.querySelector('.sidebar').style.display = 'block';
+                document.querySelector('main').style.margin = '0 40px';
+            }
+        } else {
+            // Start panning
+            isDragging = true;
+            lastMousePos = { x: mouseX, y: mouseY };
         }
-        tablinks = document.getElementsByClassName("tablinks");
-        for (i = 0; i < tablinks.length; i++) {
-            tablinks[i].className = tablinks[i].className.replace(" active", "");
+    });
+
+    // Mouse up handler
+    canvas.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    // Mouse out handler
+    canvas.addEventListener('mouseout', () => {
+        isDragging = false;
+        tooltip.style.display = 'none';
+    });
+
+    // Mouse wheel handler for zoom
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Calculate zoom factor
+        const zoom = e.deltaY < 0 ? 1.1 : 0.9;
+
+        // Apply zoom limits
+        const newScale = Math.max(0.5, Math.min(2.0, scale * zoom));
+
+        if (newScale !== scale) {
+            // Zoom centered on mouse position
+            const scaleRatio = newScale / scale;
+            panOffset.x = mouseX - scaleRatio * (mouseX - panOffset.x);
+            panOffset.y = mouseY - scaleRatio * (mouseY - panOffset.y);
+
+            scale = newScale;
+            drawPipeline();
         }
-        document.getElementById(tabName).style.display = "block";
-        evt.currentTarget.className += " active";
-    }
+    });
+
+    // Query toggle handler
+    queryToggle.addEventListener('change', (e) => {
+        showQueries = e.target.checked;
+        drawPipeline();
+    });
+
+    // Initial draw
+    drawPipeline();
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        drawPipeline();
+    });
 </script>

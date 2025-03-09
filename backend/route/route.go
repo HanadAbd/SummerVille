@@ -38,6 +38,31 @@ func HandleQuery(w http.ResponseWriter, r *http.Request) {
 
 	connections.WriteQuery(ProdConn, query, w)
 }
+
+func RunQuery(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var requestData struct {
+		Query string `json:"query"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
+
+	if requestData.Query == "" {
+		http.Error(w, "Query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	ProdConn := connections.ProdConn
+	connections.WriteQuery(ProdConn, requestData.Query, w)
+}
 func HandleExcel(w http.ResponseWriter, r *http.Request) {
 	excelConn := connections.SourcesConn.ExcelFile[0].File
 	rows, err := excelConn.GetRows("Sheet1")

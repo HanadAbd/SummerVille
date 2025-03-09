@@ -121,6 +121,39 @@ ul {
     margin: 0 0 1rem 0;
 }
 
+.sidebar {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 106px;
+        width: 400px;
+        height: 88vh;
+        background-color: var(--container-color);
+        color: #fff;
+        padding: 2rem;
+        z-index: 2;
+    }
+    
+    .side-flex {
+        display: flex;
+        flex-direction: column-reverse;
+        justify-content: flex-end;
+        height: 100%;
+    }
+    
+    .sidebar-content{
+        overflow: auto;
+        scrollbar-width: none;
+    }
+    
+    .side-title, .side-text{
+        color:var(--text-color);
+    }
+    
+    .side-content{
+        margin: 0px 30px;
+    }
+
 /* ALL INPUT STYLES */
 
 form div {

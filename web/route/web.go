@@ -34,6 +34,7 @@ func WebRouting(mux *http.ServeMux, templates *template.Template) {
 
 	mux.HandleFunc("/query", HandlePage(templates, "Queries", "queries"))
 	mux.HandleFunc("/dashboard", HandlePage(templates, "Dashboard", "dashboard"))
+	mux.HandleFunc("/test-data", HandlePage(templates, "Test Data", "testData"))
 	mux.HandleFunc("/about", HandlePage(templates, "About myProject", "about"))
 
 	mux.HandleFunc("/edit/", HandleEdit(templates))

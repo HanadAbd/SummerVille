@@ -1,0 +1,268 @@
+{{template "header" .}}
+<script src="/static/script/testData.js"></script>
+<style>
+    :root {
+        --page-height: calc(100vh - 120px);
+    }
+
+    main {
+        display: flex;
+        justify-content: center;
+        height: var(--page-height);
+    }
+
+    h2 {
+        color: var(--text-color);
+    }
+
+    /* Sidebar Styles */
+    .sidebar {
+        position: static;
+        display: flex;
+        flex-direction: column;
+        width: 20%;
+        padding: 10px;
+        background-color: var(--container-color);
+        max-height: var(--page-height);
+        overflow-y: auto;
+    }
+
+    .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .side-list {
+        width: 100%;
+        overflow-y: auto;
+    }
+
+    .side-list-header {
+        font-weight: bold;
+        margin: 10px 0;
+        padding: 5px;
+        background-color: var(--accent-color);
+        color: var(--background-color);
+    }
+
+    .side-item {
+        display: grid;
+        grid-template-columns: 0.7fr 0.3fr;
+        align-items: center;
+        margin: 0;
+        padding: 10px;
+        border-bottom: 1px solid var(--divide-color);
+        cursor: pointer;
+        color: var(--text-color)
+    }
+
+    .side-item:hover {
+        background-color: var(--accent-color);
+        color: var(--background-color);
+    }
+
+    .side-item-title {
+        font-weight: bold;
+    }
+
+    .side-item-btn {
+        padding: 3px 8px;
+        margin-left: 5px;
+        cursor: pointer;
+        background-color: var(--accent-color);
+        color: var(--background-color);
+        border: none;
+        border-radius: 3px;
+    }
+
+    .side-item-content {
+        grid-column: span 2;
+        display: none;
+        padding: 5px 10px;
+        background-color: var(--divide-color);
+    }
+
+    /* Main Content Styles */
+    .main-content {
+        width: 78%;
+        margin: 20px;
+        display: flex;
+        flex-direction: column;
+        max-height: var(--page-height);
+
+    }
+
+    .query-editor {
+        margin-bottom: 15px;
+    }
+
+    .query-buttons {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+    }
+
+
+    .results-tabs {
+        display: block;
+        width: 100%;
+    }
+
+    .container {
+        background-color: var(--container-color);
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+    }
+
+    .container-header {
+        margin-top: 0;
+        padding-bottom: 5px;
+        border-bottom: 1px solid var(--divide-color);
+    }
+
+    /* Output Table Styles */
+    .table-container {
+        overflow-x: auto;
+        margin-top: 10px;
+    }
+
+    
+    /* Tab Container Styles */
+    .tab-navigation {
+        display: flex;
+        gap: 0px;
+        background-color: var(--accent-color);
+    }
+
+    .tab-container {
+        padding: 0px;
+    }
+
+    .tab-navigation button {
+        min-width: 100px;
+        width: auto;
+        padding: 16px 32px;
+        border: none;
+        font-size: 1rem;
+        cursor: pointer;
+        background: var(--accent-colors);
+        color: var(--background-color);
+    }
+
+    .tab-navigation button.active {
+        background: var(--container-color);
+        color: var(--text-color);
+    }
+
+    .tab-content {
+        display: none;
+        padding: 16px;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .edit-container{
+        text-align: center;
+    }
+    .query-buttons{
+        display: flex;
+        justify-content:flex-end;
+    }
+
+    #edit-node{
+        width: 100%;
+        height: 600px;
+    }
+    button.tab{
+        font-size: 1.1rem;
+    }
+    
+    .results{
+        height: clamp(300px, 400px, 800px);
+    }
+    .query-textarea{
+        height: clamp(250px, 350px, 800px);
+        width: 100%;
+        overflow-y: auto;
+    }
+    
+</style>
+
+<main>
+    
+    <div class="main-content">
+        <div class="container query-editor">
+            <h2 class="container-header">MyCPU Factory Floor</h2>
+            <div class ="factory-floor">
+                <canvas id="factoryFloor" width="800" height="500"></canvas>
+                <div class="tooltip" id="tooltip"></div>
+            </div>
+        </div>
+        <div class="results-row">
+            <div class="container tab-container results-tabs">
+                <div class="tab-navigation">
+                    <button data-tab="1" class="active tab">Performance</button>
+                    <button data-tab="2" class = "tab">Logs</button>
+                </div>
+                <div class="tab-contents">
+                    <div class="tab-content results active" data-tab="1">
+                        asdlkasdsalk
+                    </div>
+                    <div class="tab-content results" data-tab="2">
+                        <textarea class="query-textarea" placeholder="Logs will be displayed here" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="sidebar tab-container">
+        <div class="tab-navigation">
+            <button data-tab="1" class="active">Sources</button>
+            <button data-tab="2">Edit</button>
+        </div>
+    
+        <!-- Saved Queries Section -->
+        <div class ="tab-content" data-tab="1">
+            <ul class="side-list" id="savedQueriesList">
+                <li class="side-item">
+                    <span class="side-item-title">Daily Production Summary</span>
+                    <div>
+                        <button class="side-item-btn">Edit</button>
+                    </div>
+                    <div class="side-item-content">
+                        <p>Created: 2023-05-15</p>
+                        <p>Type: Regular Query</p>
+                    </div>
+                </li>
+                <li class="side-item">
+                    <span class="side-item-title">Worker Performance</span>
+                    <div>
+                        <button class="side-item-btn">Edit</button>
+                    </div>
+                    <div class="side-item-content">
+                        <p>Created: 2023-05-10</p>
+                        <p>Type: Materialized View</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class ="tab-content" data-tab="2">
+            <div class ="edit-container">
+                <textarea id="edit-node" class="query-text
+                area" placeholder="Please Select a Node to view it's performance"></textarea>
+                <div class="query-buttons">
+                    <button class="btn">Save</button>
+                    <button class="btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+    
+    </div>
+</main>

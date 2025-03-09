@@ -6,6 +6,7 @@
         margin: 0 auto;
         height: 88vh;
         overflow-y: auto;
+        scrollbar-width: none;
     }
     .sidebar {
         display: none;
@@ -19,19 +20,23 @@
         padding: 2rem;
         z-index: 2;
     }
+    
     .side-flex {
         display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        flex-direction: column-reverse;
+        justify-content: flex-end;
         height: 100%;
     }
+    
     .sidebar-content{
-        border: #fff solid 1px;
-        overflow-y: auto;
+        overflow: auto;
+        scrollbar-width: none;
     }
+    
     .side-title, .side-text{
         color:var(--text-color);
     }
+    
     .side-content{
         margin: 0px 30px;
     }
@@ -41,51 +46,115 @@
         border-radius: 5px;
         background-color: var(--container-color);
         position: relative;
+        padding-top: 40px; /* Space for title */
     }
     
-
     .dashboard {
         display: grid;
-        grid-template-columns: repeat(12, 1fr);
-        grid-auto-rows: minmax(100px, auto);
+        grid-template-columns: repeat(16, 1fr);
+        grid-auto-rows: minmax(30px, auto);
         gap: 1rem;
     }
 
+    /* Component title styles */
+    .component-title {
+        position: absolute;
+        top: 10px;
+        left: 15px;
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-color);
+        z-index: 1;
+    }
+
+    /* Map component */
     .map {
-        grid-column: span 12;
-        grid-row: span 4;
+        grid-column: 1 / span 16;
+        grid-row: span 10;
+        position: relative;
+        min-height: 350px;
+    }
+
+    /* Selects row */
+    .selects-row {
+        grid-column: 1 / span 16;
+        grid-row: span 1;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .input-container {
+        display: flex;
+        align-items: center;
+        margin-right: 2rem;
+    }
+
+    .input-container label {
+        margin-right: 0.5rem;
+    }
+
+    /* KPI components */
+    .kpi-row {
+        grid-column: 1 / span 16;
+        grid-row: span 2;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .kpi-container {
+        flex: 1;
+        position: relative;
+        border: 5px solid var(--accent-color);
+        border-radius: 5px;
+        background-color: var(--container-color);
+        padding-top: 40px;
+    }
+
+    .kpi-title {
+        position: absolute;
+        top: 10px;
+        left: 15px;
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+
+    .kpi-card {
+        text-align: center;
+        font-size: 3rem;
+        margin: 1rem 0;
+    }
+
+    /* Chart and table */
+    .data-row {
+        grid-column: 1 / span 16;
+        grid-row: span 2;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .chart, .table {
+        flex: 1;
         position: relative;
     }
 
-    .input-1, .input-2 {
-        grid-column: span 2;
-        grid-row: span 1;
-        height: 50px;
-    }
-
-    .kpi-1 {
-        grid-column: 1 / span 3;
-        grid-row: span 2;
-    }
-
-    .kpi-2, .kpi-3 {
-        grid-column: span 3;
-        grid-row: span 2;
-    }
-
-    .table, .chart {
-        grid-column: span 6;
-        grid-row: span 4;
-    }
-
+    /* Tools and info */
     .more-info {
         position: absolute;
-        top: 1rem;
-        right: 1rem;
+        top: 10px;
+        right: 10px;
         background-color: var(--accent-color);
         border-radius: 50%;
-        padding: 0.5rem;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         z-index: 1;
+        cursor: pointer;
     }
 
     .tooltip {
@@ -95,6 +164,8 @@
         background-color: var(--container-color);
         width: clamp(200px, 300px, 400px);
         z-index: 1;
+        padding: 10px;
+        border-radius: 5px;
     }
 
     .node-tooltip {
@@ -107,14 +178,20 @@
         display: none;
         pointer-events: none;
     }
-    .kpi-title{
-        margin : 0 30px;
-        text-align: center;
-        font-size: 1.5rem;
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+        .data-row, .kpi-row {
+            flex-direction: column;
+        }
+        
+        .chart, .table, .kpi-container {
+            width: 100%;
+        }
     }
-    .kpi-card{
-        text-align: center;
-        font-size: 3rem;
+
+    #w3review{
+        height: 150px; width: 301px;
     }
 </style>
 
@@ -123,97 +200,148 @@
 
     <div class="tooltip">
         <div class="tooltip-content">
-            <h3>Component 1</h3>
-            <p>Some content</p>
+            <h3>Component Information</h3>
+            <p>Click for more details about this component</p>
         </div>
     </div>
 
     <div class="dashboard">
         <div class="dashboard-item map output component-1">
+            <h2 class="component-title">Interactive Factory Floor Map</h2>
             <canvas id="nodeCanvas"></canvas>
             <div class="node-tooltip" id="nodeTooltip"></div>
             <div class="more-info"></div>
         </div>
-        <div class="dashboard-item input-1 component-2">
-            <label style="display: inline;">Machine: </label>
-            <select name="cars" id="cars" style="display: inline;">
-                <option value="All Machines">All Machines</option>
-                <option value="Machine-01">Machine-01</option>
-                <option value="Machine-02">Machine-02</option>
-                <option value="Machine-03">Machine-03</option>
-            </select>
-        </div>
-        <div class="dashboard-item input-2 component-3">
-            <label style="display: inline;">Shifts: </label>
-            <select name="cars" id="cars" style="display: inline;">
-                <option value="All Shifts">All Shifts</option>
-                <option value="Blue">Blue</option>
-                <option value="Red">Red</option>
-                <option value="Green">Green</option>
-            </select>
-        </div>
-        <div class="dashboard-item kpi-1 output component-4">
-            <div class="more-info"></div>
-            <h2 class="kpi-title">Part's Per Minute</h2>
-            <h1 class =" kpi-card"> 100 </h1>
-        </div>
-        <div class="dashboard-item kpi-2 output component-5">
-            <div class="more-info"></div>
-            <h2 class="kpi-title">Total Amount Produced</h2>
-            <h1 class=" kpi-card"> 100 </h1>
-        </div>
-        <div class="dashboard-item kpi-2 output component-6">
-            <div class="more-info"></div>
-            <h2 class="kpi-title">Amount Produced This Shift</h2>
-            <h1 class=" kpi-card"> 100 </h1>
-        </div>
-        <div class="dashboard-item chart output component-7">
-            <div class="more-info"></div>
+
+        <div class="selects-row">
+            <div class="input-container">
+                <label>Machine: </label>
+                <select name="machines" id="machines" title="Select Machine">
+                    <option value="All Machines">All Machines</option>
+                    <option value="Machine-01">Machine-01</option>
+                    <option value="Machine-02">Machine-02</option>
+                    <option value="Machine-03">Machine-03</option>
+                </select>
+            </div>
             
-            <canvas id="myChart" width="300" height="300"></canvas>
+            <div class="input-container">
+                <label>Shifts: </label>
+                <select name="shifts" id="shifts" title = "Select Shift">
+                    <option value="All Shifts">All Shifts</option>
+                    <option value="Blue">Blue</option>
+                    <option value="Red">Red</option>
+                    <option value="Green">Green</option>
+                </select>
+            </div>
         </div>
-        <div class="dashboard-item table output component-8">
-            <div class="more-info"></div>
-            <div id="wrapper"></div>
+
+        <div class="kpi-row">
+            <div class="kpi-container component-4">
+                <h2 class="kpi-title">Parts Per Minute</h2>
+                <h1 class="kpi-card">100</h1>
+                <div class="more-info"></div>
+            </div>
+            
+            <div class="kpi-container component-5">
+                <h2 class="kpi-title">Total Amount Produced</h2>
+                <h1 class="kpi-card">100</h1>
+                <div class="more-info"></div>
+            </div>
+            
+            <div class="kpi-container component-6">
+                <h2 class="kpi-title">Amount Produced This Shift</h2>
+                <h1 class="kpi-card">100</h1>
+                <div class="more-info"></div>
+            </div>
+        </div>
+
+        <div class="data-row">
+            <div class="output chart component-7">
+                <h2 class="component-title">Production Analysis Chart</h2>
+                <div class="more-info"></div>
+                <canvas id="myChart" width="300" height="300"></canvas>
+            </div>
+            
+            <div class="output table component-8">
+                <h2 class="component-title">Machine Data Table</h2>
+                <div class="more-info"></div>
+                <div id="wrapper"></div>
+            </div>
         </div>
     </div>
 </main>
 
 <section class="sidebar">
     <div class="side-flex">
-    <div class="sidebar-content">
-        <div class ="side-item data-sources">
-            <h2 class="side-title">Data Sources</h2>
-            <div class="side-content">
-                <ul>
-                    <li>Source 1</li>
-                    <li>Source 2</li>
-                    <li>Source 3</li>
-                    <li>Source 4</li>
-                </ul>
+        <div class="sidebar-content">
+            <div class ="side-item data-sources">
+                <h2 class="side-title">Data Sources</h2>
+                <div class="side-content">
+                    <div class= "data-sources">
+                        <h3 class="side-text title">Data Source 1</h3>
+                        <h4 class="side-text time">Last Refresh Time:</h3>
+                        <p class="side-text type">Source Type: </p>
+                        <p class ="side-text freq">Frequency : </p>
+                    </div>
+                    <div class="data-sources">
+                        <h3 class="side-text title">Data Source 1</h3>
+                        <h4 class="side-text time">Last Refresh Time:</h3>
+                            <p class="side-text type">Source Type: </p>
+                            <p class="side-text freq">Frequency : </p>
+                    </div>
+                </div>
             </div>
+            <div class="side-item query">
+                <h2 class="side-title">Queries</h2>
+            </div>
+            <div class="side-item performance">
+                <h2 class="side-title">Performance</h2>
+                <div class="side-content">
+                    <div class ="performance">
+                        <h3 class="side-text label">Data From Query: </h3>
+                        <h3 class="side-text val">23</h3>
+                    </div>
+                    <div class="performance">
+                        <h3 class="side-text label">Data From Query: </h3>
+                        <h3 class="side-text val">23</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="side-item raw-output">
+                <h2 class="side-title">Raw Output</h2>
+                <div class="side-content">
+                    <div class="raw-component">
+                        <textarea id="w3review" name="w3review" rows="7" cols="35" >
+                        At w3schools.com you will learn how to make a website. They offer free tutorials in all web development technologies.
+                        </textarea>
+                    </div>
+                </div>
+
+            </div>
+            <div class="side-item input-elements">
+                <h2 class="side-title">Input Elements</h2>
+                <div class="side-content">
+                    <div class="performance">
+                        <h3 class="side-text label">Component 1: </h3>
+                        <h3 class="side-text val">23</h3>
+                    </div>
+                    <div class="performance">
+                        <h3 class="side-text label">Component 2: </h3>
+                        <h3 class="side-text val">23</h3>
+                    </div>
+                </div>
+            </div>
+            
         </div>
-        <div class="side-item query">
-            <h2 class="side-title">Queries</h2>
-        </div>
-        <div class="side-item performance">
-            <h2 class="side-title">Performance</h2>
-        </div>
-        <div class="side-item raw-output">
-            <h2 class="side-title">Raw Output</h2>
-        </div>
-        <div class="side-item input-elements">
-            <h2 class="side-title">Input Elements</h2>
-        </div>
-        
-    </div>
-    <button class="btn btn-primary close" onclick="document.querySelector('.sidebar').style.display = 'none'">
-        Close
-    </button>
+        <button class="btn btn-primary close" onclick="
+        document.querySelector('.sidebar').style.display = 'none'
+        document.querySelector('main').style.margin = '0 auto'
+        ">
+            Close
+        </button>
     </div>
 </section>
 <script>
-    // universal data source object
     const dataSource = {
         machines: [
             {
@@ -243,11 +371,72 @@
         ]
     };
 
+    let components;
+    function generateComponents(id,name,type,position,size,data,inputs) {
+
+        return {
+            id: id,
+            name: name,
+            type: type,
+            position: position,
+            size: size,
+            data: data,
+            inputs: inputs
+        };
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
-        // sidebar and tooltip behavior on the more-info icons
+        const floorMap = generateComponents(
+            "machine1",
+            'Machine',
+            'map',
+            { x: 0, y: 0 },
+            { width: 12, height: 6 },
+            dataSource.machines,
+            []
+        );
+
+        const machineSelect = generateComponents(
+            "machine1",
+            'Machine',
+            'select',
+            { x: 3, y: 0 },
+            { width: 2, height: 1 },
+            dataSource.machines,
+            []
+        );
+
+        const shiftSelect = generateComponents(
+            "machine1",
+            'Machine',
+            'select',
+            { x: 0, y: 0 },
+            { width: 2, height: 1},
+            dataSource.machines,
+            []
+        );
+        
+        const partsProdChart = generateComponents(
+            'Products Produced Per Machine',
+            'chart',
+            { x: 0, y: 0 },
+            { width: 6, height: 4 },
+            dataSource.machines,
+            [machineSelect.id,]
+        );
+
+        const machineTable = generateComponents(
+            'Machine Table',
+            'table',
+            { x: 0, y: 0 },
+            { width: 6, height: 4 },
+            dataSource.machines,
+            [machineSelect.id,]
+        );
         document.querySelectorAll('.more-info').forEach(info => {
             info.addEventListener('click', () => {
                 document.querySelector('.sidebar').style.display = 'block';
+                document.querySelector('main').style.margin = '0 40px'
             });
             info.addEventListener('mouseover', (event) => {
                 document.querySelector('.tooltip').style.display = 'flex';
@@ -259,36 +448,28 @@
             });
         });
 
-        // whenever an input (select) changes, update the universal data and re-render everything
         document.querySelectorAll('select').forEach(select => {
             select.addEventListener('change', updateComponentsFromInput);
         });
 
-        // initial render of all components
         reRenderAll();
     });
-
-    // simulate updating the dataSource when an input changes
     function updateComponentsFromInput(event) {
-        // For demonstration, we update each machine with new random values.
         dataSource.machines = dataSource.machines.map(machine => ({
             ...machine,
-            produced: Math.floor(Math.random() * 100 + 100),         // range: 100-200
-            partsPerMinute: Math.floor(Math.random() * 70 + 50),       // range: 50-120
-            producedThisShift: Math.floor(Math.random() * 70 + 80)     // range: 80-150
+            produced: Math.floor(Math.random() * 100 + 100),
+            partsPerMinute: Math.floor(Math.random() * 70 + 50),
+            producedThisShift: Math.floor(Math.random() * 70 + 80)
         }));
         reRenderAll();
     }
 
-    // re-render all components (map remains unchanged)
     function reRenderAll() {
-        createMap();
         createGrid();
         createChart();
         updateKPIs();
     }
 
-    // update KPI values based on data from the universal data source
     function updateKPIs() {
         const averagePartsPerMinute = Math.round(
             dataSource.machines.reduce((sum, m) => sum + m.partsPerMinute, 0) / dataSource.machines.length
@@ -306,7 +487,6 @@
         }
     }
 
-    // update Chart.js chart so that x-axis the machine names and y-axis the produced amounts
     function createChart() {
         const ctx = document.getElementById('myChart').getContext('2d');
         const labels = dataSource.machines.map(machine => machine.name);
@@ -334,7 +514,6 @@
         });
     }
 
-    // update grid to display rows (one per machine) from the universal data source
     function createGrid() {
         const gridData = dataSource.machines.map(machine => [machine.name, machine.email, machine.phone]);
         new gridjs.Grid({
@@ -343,148 +522,5 @@
         }).render(document.getElementById("wrapper"));
     }
 
-    // The createMap() function remains unchanged
-    function createMap() {
-        const canvas = document.getElementById("nodeCanvas");
-        const ctx = canvas.getContext("2d");
-        const tooltip = document.getElementById("nodeTooltip");
 
-        canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = canvas.parentElement.clientHeight;
-
-        let scale = 1;
-        let originX = 0;
-        let originY = 0;
-
-        class Node {
-            constructor(name, x, y) {
-                this.name = name;
-                this.x = x;
-                this.y = y;
-                this.radius = 20;
-                this.dataCount = Math.floor(Math.random() * 100);
-            }
-
-            draw() {
-                ctx.fillStyle = "#1a1a2e";
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = "#ffffff";
-                ctx.stroke();
-
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "12px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText(this.name, this.x, this.y + 5);
-            }
-        }
-
-        class Link {
-            constructor(node1, node2) {
-                this.node1 = node1;
-                this.node2 = node2;
-            }
-
-            draw() {
-                ctx.strokeStyle = "#4455aa";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(this.node1.x, this.node1.y);
-                ctx.lineTo(this.node2.x, this.node2.y);
-                ctx.stroke();
-            }
-        }
-
-        const nodes = [
-            new Node("Node A", 100, 100),
-            new Node("Node B", 200, 150),
-            new Node("Node C", 300, 200),
-            new Node("Node D", 400, 250),
-            new Node("Node E", 500, 300),
-            new Node("Node F", 600, 350),
-            new Node("Node G", 700, 400)
-        ];
-
-        const links = [
-            new Link(nodes[0], nodes[1]),
-            new Link(nodes[1], nodes[2]),
-            new Link(nodes[2], nodes[3]),
-            new Link(nodes[3], nodes[4]),
-            new Link(nodes[4], nodes[5]),
-            new Link(nodes[5], nodes[6])
-        ];
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.translate(originX, originY);
-            ctx.scale(scale, scale);
-            ctx.fillStyle = "#f0f0f0"; // Background color
-            ctx.fillRect(-originX, -originY, canvas.width / scale, canvas.height / scale);
-            links.forEach(link => link.draw());
-            nodes.forEach(node => node.draw());
-            ctx.restore();
-        }
-
-        function getMousePos(event) {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: (event.clientX - rect.left - originX) / scale,
-                y: (event.clientY - rect.top - originY) / scale
-            };
-        }
-
-        function showTooltip(event) {
-            const mousePos = getMousePos(event);
-            let found = false;
-            nodes.forEach(node => {
-                const distance = Math.sqrt(
-                    (mousePos.x - node.x) ** 2 + (mousePos.y - node.y) ** 2
-                );
-                if (distance < node.radius) {
-                    found = true;
-                    tooltip.style.display = "block";
-                    tooltip.style.left = `${event.pageX + 10}px`;
-                    tooltip.style.top = `${event.pageY - 30}px`;
-                    tooltip.innerHTML = `
-                        <strong>${node.name}</strong><br>
-                        Data: ${node.dataCount} items
-                    `;
-                }
-            });
-            if (!found) {
-                tooltip.style.display = "none";
-            }
-        }
-
-        function zoom(event) {
-            event.preventDefault();
-            const mousePos = getMousePos(event);
-            const zoomFactor = 1.1;
-            if (event.deltaY < 0) {
-                scale *= zoomFactor;
-                originX = mousePos.x - (mousePos.x - originX) * zoomFactor;
-                originY = mousePos.y - (mousePos.y - originY) * zoomFactor;
-            } else {
-                scale /= zoomFactor;
-                originX = mousePos.x - (mousePos.x - originX) / zoomFactor;
-                originY = mousePos.y - (mousePos.y - originY) / zoomFactor;
-            }
-            draw();
-        }
-
-        function pan(event) {
-            if (event.buttons !== 1) return;
-            originX += event.movementX;
-            originY += event.movementY;
-            draw();
-        }
-
-        canvas.addEventListener("mousemove", showTooltip);
-        canvas.addEventListener("wheel", zoom);
-        canvas.addEventListener("mousemove", pan);
-
-        draw();
-    }
 </script>

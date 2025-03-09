@@ -11,7 +11,6 @@ package backend
 import (
 	"fmt"
 	"foo/backend/connections"
-	"foo/backend/etl"
 	"foo/backend/route"
 	"net/http"
 )
@@ -26,7 +25,7 @@ func StartBackend(mux *http.ServeMux) {
 
 	restAPIRequests(mux)
 
-	etl.Refresh()
+	// etl.Refresh()
 
 }
 func restAPIRequests(mux *http.ServeMux) {
@@ -35,4 +34,5 @@ func restAPIRequests(mux *http.ServeMux) {
 	mux.HandleFunc("/api/data/excel", route.HandleExcel)
 	mux.HandleFunc("/api/data_sources", route.DataSource)
 	mux.HandleFunc("/api/query", route.HandleQuery)
+	mux.HandleFunc("/api/query/run", route.RunQuery)
 }

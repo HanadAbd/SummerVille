@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/xuri/excelize/v2"
@@ -82,14 +83,74 @@ func handleQuery(db *sql.DB, query string) ([]map[string]interface{}, error) {
 }
 
 func WriteQuery(db *sql.DB, query string, w http.ResponseWriter) {
-	results, err := handleQuery(db, query)
+	query = strings.TrimLeft(query, ";")
+
+	startTime := time.Now()
+
+	rows, err := db.Query(query)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error querying database: %v", err), http.StatusInternalServerError)
 		return
 	}
+	defer rows.Close()
+
+	cols, err := rows.Columns()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error getting columns: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	colTypes, err := rows.ColumnTypes()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error getting column types: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	var columns []map[string]string
+	for i, col := range cols {
+		columns = append(columns, map[string]string{
+			"name": col,
+			"type": colTypes[i].DatabaseTypeName(),
+		})
+	}
+
+	var results []map[string]interface{}
+	for rows.Next() {
+		values := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range values {
+			columnPointers[i] = &values[i]
+		}
+
+		if err := rows.Scan(columnPointers...); err != nil {
+			http.Error(w, fmt.Sprintf("Error scanning row: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		rowMap := make(map[string]interface{})
+		for i, colName := range cols {
+			rowMap[colName] = values[i]
+		}
+		results = append(results, rowMap)
+	}
+
+	executionTime := time.Since(startTime).Milliseconds()
+
+	response := map[string]interface{}{
+		"total_rows":        len(results),
+		"execution_time_ms": executionTime,
+		"columns":           columns,
+		"results":           results,
+		"query":             query,
+	}
+
+	if len(results) > 100 {
+		response["results"] = results[:100]
+		response["truncated"] = true
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(results); err != nil {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
 	}
 }

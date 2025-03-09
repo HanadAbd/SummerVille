@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 
+	"foo/backend"
 	"foo/web/route"
 
 	"github.com/joho/godotenv"
@@ -33,11 +34,11 @@ func main() {
 	intilaseEnv()
 	mux := http.NewServeMux()
 
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./web/src"))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./web/dist"))))
 
 	route.WebRouting(mux, templates)
 
-	// backend.StartBackend(mux)
+	backend.StartBackend(mux)
 
 	fmt.Println("Server is running on: http://localhost:8080/")
 
