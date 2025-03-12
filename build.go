@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 )
 
@@ -31,21 +30,7 @@ func doBuild() {
 	}
 
 	fmt.Println("Files copied and compiled successfully.")
-	cmd := exec.Command("tsc", "--watch")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Start()
-	if err != nil {
-		fmt.Printf("Error starting TypeScript compiler: %v\n", err)
-		return
-	}
-	fmt.Println("TypeScript compiler watching for changes...")
-
-	go func() {
-		if err := cmd.Wait(); err != nil {
-			fmt.Printf("TypeScript compiler error: %v\n", err)
-		}
-	}()
+	// convertToJs()
 }
 
 func copyAndCompile(src, dist string) error {
@@ -81,3 +66,22 @@ func copyAndCompile(src, dist string) error {
 
 	return nil
 }
+
+// func convertToJs() {
+
+// 	cmd := exec.Command("tsc", "--watch")
+// 	cmd.Stdout = os.Stdout
+// 	cmd.Stderr = os.Stderr
+// 	err := cmd.Start()
+// 	if err != nil {
+// 		fmt.Printf("Error starting TypeScript compiler: %v\n", err)
+// 		return
+// 	}
+// 	fmt.Println("TypeScript compiler watching for changes...")
+
+// 	go func() {
+// 		if err := cmd.Wait(); err != nil {
+// 			fmt.Printf("TypeScript compiler error: %v\n", err)
+// 		}
+// 	}()
+// }

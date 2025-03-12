@@ -1,4 +1,15 @@
-type node = {
+type CanvasMap ={
+    element:HTMLCanvasElement;
+    ctx:CanvasRenderingContext2D;
+    offsetX:number;
+    offsetY:number;
+    scale:number;
+    isDragging:boolean;
+    lastX:number;
+    lastY:number;
+}
+
+type Nodes = {
     id: string;
     name: string;
     type: string;
@@ -6,9 +17,10 @@ type node = {
     connects: string[];
     contains: string[];
     parameters?: Record<string, any>;
+    position?: Pos;
 };
 
-type pos ={
+type Pos ={
     x:number;
     y:number;
     z:number;  
@@ -16,7 +28,6 @@ type pos ={
 
 document.addEventListener('DOMContentLoaded', function () {
     intialiseFactoryFloor();
-    console.log('Document loaded');
 });
 
 window.addEventListener("resize", function () {
@@ -34,23 +45,34 @@ function intialiseFactoryFloor(){
     const factoryFloor = document.getElementById('factoryFloor') as HTMLCanvasElement;
     const ctx = factoryFloor.getContext('2d') as CanvasRenderingContext2D;
     const container = factoryFloor.parentElement as HTMLElement;
-    const allNodes = getAllNodes()
+  
+    const canvasMap:CanvasMap = {
+        element:factoryFloor,
+        ctx:ctx,
+        offsetX:0,
+        offsetY:0,
+        scale:1,
+        isDragging:false,
+        lastX:0,
+        lastY:0
+    }
 
 
-    setCanvasSize(factoryFloor, container,ctx);
-    populateCanvas(ctx,allNodes);
+    setCanvasSize(canvasMap, container);
+    renderCanvas(canvasMap);
+    intialiseEvents(canvasMap);
 }
 
-function setCanvasSize (canvas:HTMLCanvasElement, container:HTMLElement,ctx:CanvasRenderingContext2D) :void {
+function setCanvasSize (canvasMap:CanvasMap, container:HTMLElement) :void {
     const width = container.clientWidth;
     const height = container.clientHeight;
-    canvas.width = width;
-    canvas.height = height;
-    ctx.fillStyle = '#DFE0EF';
+    canvasMap.element.width = width;
+    canvasMap.element.height = height;
+    canvasMap.ctx.fillStyle = '#DFE0EF';
 
-    ctx.fillRect(0, 0, width, height);
+    canvasMap.ctx.fillRect(0, 0, width, height);
 }
-function getAllNodes(): node[] {
+function getAllNodes(): Nodes[] {
     return [
         {
             "id": "start",
@@ -162,231 +184,71 @@ function getAllNodes(): node[] {
     ]
 }
 
-function populateCanvas(ctx : CanvasRenderingContext2D, nodes: node[]):void {
-    const nodePositions = calculateNodePositions(nodes, ctx);
-    
-    nodes.forEach(node => {
-        if (node.connects) {
-            node.connects.forEach(targetId => {
-                const targetPos = nodePositions[targetId];
-                const sourcePos = nodePositions[node.id];
-                if (targetPos && sourcePos) {
-                    const targetNode = nodes.find(n => n.id === targetId);
-                    const isBidirectional = targetNode && targetNode.connects && targetNode.connects.includes(node.id);
-                    drawArrow(ctx, sourcePos.x, sourcePos.y, targetPos.x, targetPos.y, isBidirectional);
-                }
-            });
-        }
-    });
-
-    const sortedNodes = [...nodes].sort((a, b) => {
-        if ((a.contains?.length || 0) > 0 && (b.contains?.length || 0) === 0) return -1;
-        if ((a.contains?.length || 0) === 0 && (b.contains?.length || 0) > 0) return 1;
-        return 0;
-    });
-
-    sortedNodes.forEach(node => {
-        const pos = nodePositions[node.id];
-        if (pos) {
-            drawNode(ctx, node, pos.x, pos.y);
-        }
-    });
-
-    setupNodeInteractivity(ctx, nodes, nodePositions);
+function renderCanvas(canvasMap: CanvasMap):void {
+    const allNodes = getAllNodes();
+    const nodePositions = calculatePos(allNodes);
 }
 
-function calculateNodePositions(nodes:node[], ctx:CanvasRenderingContext2D) : Record<string, pos>{
-    const positions: Record<string,pos>= {};
-    const levels :Record<number,node[]>= {};
+function calculatePos(nodes:Nodes[],):Record<string, Pos>{
+    const nodePositions:Record<string, Pos> = {};
+    const start = nodes[0];
+    return nodePositions;
     
-    let startNode = nodes.find(n => n.type === 'start');
-    if (!startNode) return positions
-
-    assignLevels(startNode, 0);
-    
-    function assignLevels(node:node, level:number) {
-        if (!node) return;
-        if (!levels[level]) levels[level] = [];
-        levels[level].push(node);
-        
-        if (node.connects) {
-            node.connects.forEach(targetId => {
-                const targetNode = nodes.find(n => n.id === targetId);
-                if (targetNode && !levels[level + 1]?.includes(targetNode)) {
-                    assignLevels(targetNode, level + 1);
-                }
-            });
-        }
-    }
-    
-    const canvas = ctx.canvas;
-    const levelWidth = canvas.width / (Object.keys(levels).length + 1);
-    
-    Object.entries(levels).forEach(([level, nodesInLevel]) => {
-        const levelY = canvas.height / (nodesInLevel.length + 1);
-        nodesInLevel.forEach((node, index) => {
-            positions[node.id] = {
-                x: levelWidth * (parseInt(level) + 1),
-                y: levelY * (index + 1),
-                z:1
-            };
-        });
-    });
-    
-    return positions;
 }
 
-function drawNode(ctx: CanvasRenderingContext2D, node: node, x: number, y: number) {
-    // Base radius for nodes
-    let radius = 30;
-    
-    // Make container nodes larger
-    if (node.contains && node.contains.length > 0) {
-        radius = 45; // Larger radius for container nodes
-    }
-    
-    ctx.fillStyle = getNodeColor(node.type);
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    
-    if (node.contains && node.contains.length > 0) {
-        ctx.beginPath();
-        ctx.arc(x, y, radius + 5, 0, Math.PI * 2);
-        ctx.strokeStyle = '#666';
-        ctx.stroke();
-        
-        // Add indicator that this is a container
-        ctx.fillStyle = '#000';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(`Contains: ${node.contains.length}`, x, y + radius - 10);
-    }
-    
-    ctx.fillStyle = '#000';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(node.name, x, y + 4);
+function intialiseEvents(canvasMaps:CanvasMap):void{
+    canvasMaps.element.addEventListener('mousedown', (e:MouseEvent) => HandleMouseDown(e, canvasMaps));
+    canvasMaps.element.addEventListener('mousemove', (e:MouseEvent) => HandleMouseMove(e, canvasMaps));
+    canvasMaps.element.addEventListener('mouseup', (e:MouseEvent) => HandleMouseUp(e, canvasMaps));
+    canvasMaps.element.addEventListener('mouseleave', (e:MouseEvent) => HandleMouseUp(e, canvasMaps));
+    canvasMaps.element.addEventListener('wheel', (e:WheelEvent) => HandleMouseWheel(e, canvasMaps));
 }
 
-function drawArrow(ctx: CanvasRenderingContext2D, fromX:number, fromY:number, toX:number, toY:number, isBidirectional = false) {
-    const headLength = 10;
-    const dx = toX - fromX;
-    const dy = toY - fromY;
-    const angle = Math.atan2(dy, dx);
+function HandleMouseDown(e:MouseEvent, canvasMap:CanvasMap):void{
+    const mouseX = e.clientX - canvasMap.element.offsetLeft;
+    const mouseY = e.clientY - canvasMap.element.offsetTop;
+    canvasMap.isDragging = true;
+    canvasMap.lastX = mouseX;
+    canvasMap.lastY = mouseY;
+    canvasMap.element.style.cursor = 'grabbing';
+}
+
+function HandleMouseMove(e:MouseEvent, canvasMap:CanvasMap):void{
+    if(!canvasMap.isDragging){
+        return;
+    }
+    const mouseX = e.clientX - canvasMap.element.offsetLeft;
+    const mouseY = e.clientY - canvasMap.element.offsetTop;
+    const dx = mouseX - canvasMap.lastX;
+    const dy = mouseY - canvasMap.lastY;
+    canvasMap.lastX = mouseX;
+    canvasMap.lastY = mouseY;
+    canvasMap.offsetX += dx;
+    canvasMap.offsetY += dy;
+
+    renderCanvas(canvasMap);
+}
+
+function HandleMouseUp(e:MouseEvent, canvasMap:CanvasMap):void{
+    canvasMap.isDragging = false;
+}
+
+function HandleMouseWheel(e:WheelEvent, canvasMap:CanvasMap):void{
+    e.preventDefault();
+    const zoomFactor = 0.1;
+    const mouseX = e.offsetX;
+    const mouseY = e.offsetY;
     
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const radius = 30;
-    
-    const startX = fromX + (radius * Math.cos(angle));
-    const startY = fromY + (radius * Math.sin(angle));
-    const endX = toX - (radius * Math.cos(angle));
-    const endY = toY - (radius * Math.sin(angle));
-    
-    ctx.beginPath();
-    
-    if (isBidirectional) {
-        const midX = (fromX + toX) / 2;
-        const midY = (fromY + toY) / 2;
-        const offsetX = -dy * 0.2; 
-        const offsetY = dx * 0.2;
-        
-        ctx.moveTo(startX, startY);
-        ctx.quadraticCurveTo(midX + offsetX, midY + offsetY, endX, endY);
+    if (e.deltaY < 0) {
+        canvasMap.scale += zoomFactor;
     } else {
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
+        canvasMap.scale -= zoomFactor;
+        if (canvasMap.scale < 0.1) canvasMap.scale = 0.1; 
     }
-    
-    ctx.lineTo(endX - headLength * Math.cos(angle - Math.PI/6), endY - headLength * Math.sin(angle - Math.PI/6));
-    ctx.moveTo(endX, endY);
-    ctx.lineTo(endX - headLength * Math.cos(angle + Math.PI/6), endY - headLength * Math.sin(angle + Math.PI/6));
-    
-    ctx.strokeStyle = '#666';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+
+    canvasMap.offsetX = mouseX - (mouseX - canvasMap.offsetX) * (canvasMap.scale / (canvasMap.scale + zoomFactor));
+    canvasMap.offsetY = mouseY - (mouseY - canvasMap.offsetY) * (canvasMap.scale / (canvasMap.scale + zoomFactor));
+
+    renderCanvas(canvasMap);
 }
 
-function getNodeColor(type:string) : string {
-    const colors = {
-        'start': '#90EE90',
-        'end': '#FFB6C1',
-        'station': '#ADD8E6',
-        'cuttingMachine': '#DDA0DD',
-        'sensorMachine': '#F0E68C'
-    } as Record<string, string>;
-    return colors[type] || '#FFFFFF';
-}
-
-function setupNodeInteractivity(ctx: CanvasRenderingContext2D, nodes: node[], nodePositions: Record<string, pos>) :void{
-    const canvas = ctx.canvas;
-    const tooltip = document.getElementById('tooltip') as HTMLElement;
-    const editTextArea = document.getElementById('edit-node') as HTMLTextAreaElement;
-    
-    function isOverNode(x: number, y:number, nodeX: number, nodeY:number) {
-        const radius = 30;
-        return Math.sqrt((x - nodeX) * (x - nodeX) + (y - nodeY) * (y - nodeY)) <= radius;
-    }
-    
-    canvas.addEventListener('click', function(e) {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        for (const node of nodes) {
-            const pos = nodePositions[node.id];
-            if (pos && isOverNode(x, y, pos.x, pos.y)) {
-                let parameterText = '';
-                if (node.parameters) {
-                    parameterText = JSON.stringify(node.parameters, null, 2);
-                } else {
-                    parameterText = `Node ID: ${node.id}\nName: ${node.name}\nType: ${node.type}\nState: ${node.state}`;
-                }
-                editTextArea.value = parameterText;
-                return;
-            }
-        }
-    });
-    
-    canvas.addEventListener('mousemove', function(e) {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        let hoverNode = null;
-        
-        for (const node of nodes) {
-            const pos = nodePositions[node.id];
-            if (pos && isOverNode(x, y, pos.x, pos.y)) {
-                hoverNode = node;
-                break;
-            }
-        }
-        
-        if (hoverNode) {
-            let tooltipContent = `<b>${hoverNode.name}</b><br>Type: ${hoverNode.type}<br>State: ${hoverNode.state}`;
-            
-            if (hoverNode.parameters) {
-                tooltipContent += '<br><b>Parameters:</b><br>';
-                for (const [key, value] of Object.entries(hoverNode.parameters)) {
-                    tooltipContent += `${key}: ${value}<br>`;
-                }
-            }
-            
-            tooltip.innerHTML = tooltipContent;
-            tooltip.style.display = 'block';
-            tooltip.style.left = (e.clientX + 10) + 'px';
-            tooltip.style.top = (e.clientY + 10) + 'px';
-        } else {
-            tooltip.style.display = 'none';
-        }
-    });
-    
-    canvas.addEventListener('mouseleave', function() {
-        tooltip.style.display = 'none';
-    });
-}

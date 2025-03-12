@@ -1,8 +1,11 @@
-package route
+package web
 
 import (
 	"fmt"
+	"foo/services/registry"
+	"foo/simData"
 	"html/template"
+
 	"net/http"
 )
 
@@ -14,19 +17,12 @@ func IntaliseTemplates() *template.Template {
 	return templates
 }
 
-func WebRouting(mux *http.ServeMux, templates *template.Template) {
+func WebRouting(mux *http.ServeMux, templates *template.Template, registry interface{}) {
 
 	mux.HandleFunc("/login", HandlePage(templates, "Login", "login"))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	})
-
-	// <a href="/home">Home</a>
-	// <a href="/datasource">Data Sources</a>
-	// <a href="/etl">ETL</a>
-	// <a href="/query">Queries</a>
-	// <a href="/dashboard">Dashboard Example</a>
-	// <a href="/about">About</a>
 
 	mux.HandleFunc("/home", HandlePage(templates, "Home", "home"))
 	mux.HandleFunc("/datasource", HandlePage(templates, "Datasource", "datasources"))
@@ -34,7 +30,7 @@ func WebRouting(mux *http.ServeMux, templates *template.Template) {
 
 	mux.HandleFunc("/query", HandlePage(templates, "Queries", "queries"))
 	mux.HandleFunc("/dashboard", HandlePage(templates, "Dashboard", "dashboard"))
-	mux.HandleFunc("/test-data", HandlePage(templates, "Test Data", "testData"))
+	mux.HandleFunc("/test-data", HandleTestPage(templates, "Test Data", "testData", registry))
 	mux.HandleFunc("/about", HandlePage(templates, "About myProject", "about"))
 
 	mux.HandleFunc("/edit/", HandleEdit(templates))
@@ -70,6 +66,29 @@ func HandleNewETL(templates *template.Template) http.HandlerFunc {
 			"Title": "New ETL",
 		}
 		templates.ExecuteTemplate(w, "newETL.html", data)
+	}
+}
+
+func HandleTestPage(templates *template.Template, name, file string, register interface{}) http.HandlerFunc {
+	html_file := file + ".html"
+
+	reg := register.(*registry.Registry)
+
+	factoryObj, ok := reg.Get("simData.factory")
+	if !ok {
+		fmt.Printf("Error getting factory object from registry")
+		return nil
+	}
+	factory := factoryObj.(*simData.Factory)
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		templates = IntaliseTemplates()
+		data := map[string]interface{}{
+			"Title":     name,
+			"AllNodes":  factory.GetAllNodes(),
+			"NodeCount": factory.GetCount(),
+		}
+		templates.ExecuteTemplate(w, html_file, data)
 	}
 }
 

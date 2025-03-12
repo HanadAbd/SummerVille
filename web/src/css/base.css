@@ -112,47 +112,130 @@ ul {
 /* ALL LAYOUT STYLES */
 
 .container {
-    background: var(--container-color);
-    padding: 10px;
-    /* border-radius: 8px; */
-    width: 100%;
+    background-color: var(--container-color);
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
 }
-.container-header{
-    margin: 0 0 1rem 0;
+.container-header {
+    margin-top: 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--divide-color);
+}
+.main-content {
+    width: 80%;
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    max-height: var(--page-height);
+
 }
 
+
 .sidebar {
-        display: none;
-        position: absolute;
-        right: 0;
-        top: 106px;
-        width: 400px;
-        height: 88vh;
-        background-color: var(--container-color);
-        color: #fff;
-        padding: 2rem;
-        z-index: 2;
-    }
-    
-    .side-flex {
+        position: static;
         display: flex;
-        flex-direction: column-reverse;
-        justify-content: flex-end;
-        height: 100%;
+        flex-direction: column;
+        width: 20%;
+        background-color: var(--container-color);
+        max-height: var(--page-height);
+        overflow-y: auto;
     }
-    
-    .sidebar-content{
-        overflow: auto;
-        scrollbar-width: none;
+
+.side-flex {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+    height: 100%;
+}
+
+.sidebar-content{
+    overflow: auto;
+    scrollbar-width: none;
+}
+
+.side-title, .side-text{
+    color:var(--text-color);
+}
+
+.side-content{
+    margin: 0px 30px;
+}
+
+
+.side-item {
+        display: grid;
+        grid-template-columns: 0.7fr 0.3fr;
+        align-items: center;
+        margin: 0;
+        padding: 10px;
+        border-bottom: 1px solid var(--divide-color);
+        cursor: pointer;
+        color: var(--text-color)
     }
-    
-    .side-title, .side-text{
-        color:var(--text-color);
+
+    .side-item:hover {
+        background-color: var(--accent-color);
+        color: var(--background-color);
     }
-    
-    .side-content{
-        margin: 0px 30px;
+
+    .side-item-title {
+        font-weight: bold;
     }
+
+    .side-item-btn {
+        padding: 3px 8px;
+        margin-left: 5px;
+        cursor: pointer;
+        background-color: var(--accent-color);
+        color: var(--background-color);
+        border: none;
+        border-radius: 3px;
+    }
+
+    .side-item-content {
+        grid-column: span 2;
+        display: none;
+        padding: 5px 10px;
+        background-color: var(--divide-color);
+    }
+/*Tab Styles*/
+
+.tab-navigation {
+    display: flex;
+    gap: 0px;
+    background-color: var(--accent-color);
+}
+
+.tab-container {
+    padding: 0px;
+}
+
+.tab-navigation button {
+    min-width: 100px;
+    width: auto;
+    padding: 16px 32px;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    background: var(--accent-colors);
+    color: var(--background-color);
+}
+
+.tab-navigation button.active {
+    background: var(--container-color);
+    color: var(--text-color);
+}
+
+.tab-content {
+    display: none;
+    padding: 16px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
 
 /* ALL INPUT STYLES */
 
@@ -190,15 +273,20 @@ label {
     background-color: rgba(0, 0, 0, 0.4);
 }
 dialog {
-        background-color: white;
-        margin: 10% auto;
-        width: 50%;
-        border: none;
-        border-radius: 10px;
-        padding: 50px;
-        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
-        text-align: center;
-    }
+    background-color: white;
+    margin: 10% auto;
+    width: 50%;
+    border: none;
+    border-radius: 10px;
+    padding: 50px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+textarea{
+    height: clamp(250px, 350px, 800px);
+    width: 100%;
+    overflow-y: auto;
+}
 
 
 .nav-circle {
@@ -209,5 +297,26 @@ dialog {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/*Canvas Styles*/
+
+canvas {
+    background-color:lightgrey
+}
+.canvas-btn{
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+}
+
+#tooltip {
+    position: fixed;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    border-radius: 5px;
+    pointer-events: none;
+    display: none;
 }
 

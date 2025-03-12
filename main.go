@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"foo/backend"
-	"foo/web/route"
+	"foo/services"
 
 	"github.com/joho/godotenv"
 )
@@ -30,21 +31,33 @@ func intilaseEnv() {
 func main() {
 	doBuild()
 	intaliseTemplates()
-
 	intilaseEnv()
-	mux := http.NewServeMux()
+	config := services.LoadConfig()
 
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./web/dist"))))
+	manager := services.NewManager()
 
-	route.WebRouting(mux, templates)
+	registry := manager.GetRegistry()
 
-	backend.StartBackend(mux)
+	webService := services.NewWebService(config.ServerAddress, templates, registry)
+	manager.Register(webService)
 
-	fmt.Println("Server is running on: http://localhost:8080/")
+	backendService := services.NewBackendService(webService.GetMux())
+	manager.Register(backendService)
 
-	err := http.ListenAndServe("localhost:8080", mux)
+	simDataService := services.NewSimulatedService(registry)
+	manager.Register(simDataService)
 
-	if err != nil {
-		fmt.Printf("Server Crashed: %v\n", err)
+	if err := manager.Start(); err != nil {
+		fmt.Printf("Error starting services: %v\n", err)
+		os.Exit(1)
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+
+	fmt.Println("Shutting down services...")
+	manager.Stop()
+	fmt.Println("Server stopped gracefully")
+
 }
