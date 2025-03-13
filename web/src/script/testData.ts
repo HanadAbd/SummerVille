@@ -1,3 +1,11 @@
+interface Window {
+    appData: {
+        allNodes: string;
+        count: string;
+    };
+}
+
+
 type CanvasMap ={
     element:HTMLCanvasElement;
     ctx:CanvasRenderingContext2D;
@@ -27,6 +35,20 @@ type Pos ={
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    
+    console.log(window.appData.allNodes);
+
+
+    console.log(window.appData.count);
+
+    const conn = new WebSocket("ws://localhost:8080/ws");
+    conn.onmessage = function (evt) {
+            var messages = evt.data.split('\n');
+            for (var i = 0; i < messages.length; i++) {
+                console.log(messages[i]);
+            }
+        };  
+
     intialiseFactoryFloor();
 });
 
@@ -37,6 +59,8 @@ window.addEventListener("resize", function () {
 function clearCanvas(){
     const canvas = document.getElementById('factoryFloor') as HTMLCanvasElement;
     const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    ctx.fillStyle = '#DFE0EF';
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -184,9 +208,22 @@ function getAllNodes(): Nodes[] {
     ]
 }
 
+
+
 function renderCanvas(canvasMap: CanvasMap):void {
+    clearCanvas()
     const allNodes = getAllNodes();
     const nodePositions = calculatePos(allNodes);
+
+    const node = { x: 200, y: 300, radius: 22, color: '#45B7D1', info: 'Node 3: Processing unit' }
+
+    canvasMap.ctx.beginPath();
+    canvasMap.ctx.arc(node.x + canvasMap.offsetX, node.y  + canvasMap.offsetY, node.radius * canvasMap.scale, 0, Math.PI * 2);
+    canvasMap.ctx.fillStyle = node.color;
+    canvasMap.ctx.fill();
+    canvasMap.ctx.strokeStyle = '#35354F';
+    canvasMap.ctx.lineWidth = 3;
+    canvasMap.ctx.stroke();
 }
 
 function calculatePos(nodes:Nodes[],):Record<string, Pos>{
@@ -202,6 +239,15 @@ function intialiseEvents(canvasMaps:CanvasMap):void{
     canvasMaps.element.addEventListener('mouseup', (e:MouseEvent) => HandleMouseUp(e, canvasMaps));
     canvasMaps.element.addEventListener('mouseleave', (e:MouseEvent) => HandleMouseUp(e, canvasMaps));
     canvasMaps.element.addEventListener('wheel', (e:WheelEvent) => HandleMouseWheel(e, canvasMaps));
+    const homeButton = document.getElementById('homeButton') as HTMLButtonElement;
+    homeButton.addEventListener('click', () => resetCanvas(canvasMaps));
+}
+
+function resetCanvas(canvasMap:CanvasMap):void{
+    canvasMap.offsetX = 0;
+    canvasMap.offsetY = 0;
+    canvasMap.scale = 1;
+    renderCanvas(canvasMap);
 }
 
 function HandleMouseDown(e:MouseEvent, canvasMap:CanvasMap):void{
@@ -221,8 +267,10 @@ function HandleMouseMove(e:MouseEvent, canvasMap:CanvasMap):void{
     const mouseY = e.clientY - canvasMap.element.offsetTop;
     const dx = mouseX - canvasMap.lastX;
     const dy = mouseY - canvasMap.lastY;
+    
     canvasMap.lastX = mouseX;
     canvasMap.lastY = mouseY;
+
     canvasMap.offsetX += dx;
     canvasMap.offsetY += dy;
 
@@ -243,7 +291,7 @@ function HandleMouseWheel(e:WheelEvent, canvasMap:CanvasMap):void{
         canvasMap.scale += zoomFactor;
     } else {
         canvasMap.scale -= zoomFactor;
-        if (canvasMap.scale < 0.1) canvasMap.scale = 0.1; 
+        if (canvasMap.scale < 0.5) canvasMap.scale = 0.5; 
     }
 
     canvasMap.offsetX = mouseX - (mouseX - canvasMap.offsetX) * (canvasMap.scale / (canvasMap.scale + zoomFactor));

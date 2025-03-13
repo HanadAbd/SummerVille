@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"foo/services/registry"
+	"log"
 	"sync"
 )
 
@@ -13,16 +14,21 @@ type Service interface {
 }
 
 type Manager struct {
-	services []Service
+	services map[string]ServiceConfig
 	wg       sync.WaitGroup
 	registry *registry.Registry
 	ctx      context.Context
 	cancel   context.CancelFunc
 }
+type ServiceConfig struct {
+	service Service
+	started bool
+}
 
 func NewManager() *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Manager{
+		services: make(map[string]ServiceConfig),
 		ctx:      ctx,
 		cancel:   cancel,
 		registry: registry.NewRegistry(),
@@ -33,20 +39,45 @@ func (m *Manager) GetRegistry() *registry.Registry {
 }
 
 func (m *Manager) Register(service Service) {
-	m.services = append(m.services, service)
+	m.services[service.Name()] = ServiceConfig{
+		service: service,
+		started: false,
+	}
+	log.Print("Registered service: ", service.Name())
 }
 
 func (m *Manager) Start() error {
-	for _, service := range m.services {
-		svc := service // Create a new variable to avoid closure issues
+	for _, sCfg := range m.services {
+		if sCfg.started {
+			continue
+		}
+		svc := sCfg.service // Create a new variable to avoid closure issues
 		m.wg.Add(1)
 		go func() {
+
 			defer m.wg.Done()
 			if err := svc.Start(m.ctx); err != nil {
-				// Log error or handle it as needed
+				log.Printf("Error starting service %s: %v", svc.Name(), err)
 			}
 		}()
 	}
+	return nil
+}
+
+func (m *Manager) StartService(service Service) error {
+	m.services[service.Name()] = ServiceConfig{
+		service: service,
+		started: true,
+	}
+	m.wg.Add(1)
+	go func() {
+		defer m.wg.Done()
+		if err := service.Start(m.ctx); err != nil {
+			log.Printf("Error starting service %s: %v", service.Name(), err)
+		} else {
+			log.Printf("Service %s started", service.Name())
+		}
+	}()
 	return nil
 }
 

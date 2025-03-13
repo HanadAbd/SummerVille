@@ -277,7 +277,8 @@ func SimulateData(connections map[string]*DataSources, factory *Factory) {
 }
 
 func createLogFile() {
-	timestamp := time.Now().Format("2006-01-02-15-04-05")
-	logPath = fmt.Sprintf("simData/log_data/log_%s.txt", timestamp)
+	// timestamp := time.Now().Format("2006-01-02-15-04-05")
+	// logPath = fmt.Sprintf("simData/log_data/log_%s.txt", timestamp)
+	logPath = fmt.Sprintf("simData/log_data/log.txt")
 	os.MkdirAll("simData/log_data", 0755)
 }

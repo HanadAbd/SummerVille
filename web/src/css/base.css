@@ -302,7 +302,7 @@ textarea{
 /*Canvas Styles*/
 
 canvas {
-    background-color:lightgrey
+    background-color:var(--background-color);
 }
 .canvas-btn{
     position: absolute;

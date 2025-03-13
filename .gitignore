@@ -6,3 +6,4 @@ package-lock.json
 web/dist/
 webpack.config.js
 simData/log_data
+simData/test_data

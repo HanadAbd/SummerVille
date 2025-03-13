@@ -193,3 +193,7 @@ func tableExists(prodDB *sql.DB, tableName, schema string) bool {
 	defer rows.Close()
 	return rows.Next()
 }
+
+func InitETLPipeline() {
+
+}

@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"foo/services"
+	"foo/services/registry"
 
 	"github.com/joho/godotenv"
 )
@@ -29,7 +30,7 @@ func intilaseEnv() {
 }
 
 func main() {
-	doBuild()
+	// doBuild()
 	intaliseTemplates()
 	intilaseEnv()
 	config := services.LoadConfig()
@@ -38,14 +39,7 @@ func main() {
 
 	registry := manager.GetRegistry()
 
-	webService := services.NewWebService(config.ServerAddress, templates, registry)
-	manager.Register(webService)
-
-	backendService := services.NewBackendService(webService.GetMux())
-	manager.Register(backendService)
-
-	simDataService := services.NewSimulatedService(registry)
-	manager.Register(simDataService)
+	createService(config, registry, manager)
 
 	if err := manager.Start(); err != nil {
 		fmt.Printf("Error starting services: %v\n", err)
@@ -60,4 +54,22 @@ func main() {
 	manager.Stop()
 	fmt.Println("Server stopped gracefully")
 
+}
+
+func createService(config *services.Config, registry *registry.Registry, manager *services.Manager) {
+	connectionsService := services.NewConnectionsService()
+	manager.Register(connectionsService)
+	// manager.StartService(connectionsService)
+
+	webService := services.NewWebService(config.ServerAddress, templates, registry)
+	manager.Register(webService)
+
+	backendService := services.NewBackendService(webService.GetMux())
+	manager.Register(backendService)
+
+	simDataService := services.NewSimulatedService(registry)
+	manager.Register(simDataService)
+
+	etlService := services.NewEtlService()
+	manager.Register(etlService)
 }

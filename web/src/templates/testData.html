@@ -85,7 +85,7 @@
             <h2 class="container-header">MyCPU Factory Floor</h2>
             <div class ="factory-floor">
                 <canvas id="factoryFloor" width="800" height="500"></canvas>
-                <button class="btn canvas-btn" id="home">Home</button>
+                <button class="btn canvas-btn btn-primary" id="homeButton">Home</button>
                 <div class="tooltip"></div>
             </div>
         </div>
@@ -143,19 +143,21 @@
                 <textarea id="edit-node" class="query-text
                 area" placeholder="Please Select a Node to view it's performance"></textarea>
                 <div class="query-buttons">
-                    <button class="btn">Save</button>
-                    <button class="btn">Cancel</button>
+                    <button class="btn btn-primary">Save</button>
+                    <button class="btn btn-primary">Cancel</button>
                 </div>
             </div>
         </div>
         <div class="side-bar-footer">
-            <button class="btn">New Query</button>
+            <button class="btn btn-primary">New Query</button>
         </div>
     </div>
 </main>
 
 <script>
-    console.log("Node Data: {{.AllNodes}}");
-    console.log("Count of Nodes: {{.NodeCount}}");
-
+    window.appData = {
+        allNodes: '{{.AllNodes}}',
+        count: '{{.NodeCount }}' 
+    };
 </script>
+
