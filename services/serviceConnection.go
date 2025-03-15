@@ -1,8 +1,13 @@
 package services
 
-import "context"
+import (
+	"context"
+	"foo/backend/connections"
+)
 
 type ConnectionsService struct {
+	prodDBName string
+	prodDB     *connections.Connector
 }
 
 func NewConnectionsService() *ConnectionsService {
@@ -14,6 +19,8 @@ func (c *ConnectionsService) Name() string {
 }
 
 func (c *ConnectionsService) Start(ctx context.Context) error {
+
+	connections.InitConnector()
 	return nil
 }
 

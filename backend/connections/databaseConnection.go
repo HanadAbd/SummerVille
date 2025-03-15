@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 )
 
 var (
@@ -46,7 +45,7 @@ func GetProdDatabase() (*sql.DB, error) {
 		return nil, err
 	}
 
-	fmt.Println("Successfully connected to the Production Database!")
+	// fmt.Println("Successfully connected to the Production Database!")
 	return ProdConn, nil
 }
 func getProdCred() string {
@@ -61,39 +60,7 @@ func getProdCred() string {
 }
 
 func InitConnector() (*Connector, error) {
-	mssqlDSN := getMssqlDSN("localhost\\SQLEXPRESS", "master", "trusted_connection=yes")
-	postgresDSN := getPostgresDSN("postgres", "Week7890", "prototype-1", "localhost", "5432", "disable")
-	excelUrl := "test_data/shift_handover.xlsx"
-
-	maxOpenConns, maxIdleConns := 2, 3
-	connMaxLifetime := time.Minute
-
-	GetProdDatabase()
-
-	postgresDB, err := InitPostgresDB(postgresDSN, maxOpenConns, maxIdleConns, connMaxLifetime)
-	if err != nil {
-		return nil, err
-	}
-	postgresConn := []*postgresConn{{Conn: postgresDB, Name: "production_data", Refreshtime: time.Now()}}
-
-	mssqlDB, err := InitMssqlDB(mssqlDSN, maxOpenConns, maxIdleConns, connMaxLifetime)
-	if err != nil {
-		return nil, err
-	}
-	mssqlConn := []*mssqlConn{{Conn: mssqlDB, Name: "sensor_data", Refreshtime: time.Now()}}
-
-	excelFile, err := InitExcel(excelUrl)
-	if err != nil {
-		return nil, err
-	}
-	excelConn := []*excelConn{{File: excelFile, Name: "shift_handover", Refreshtime: time.Now()}}
-
-	SourcesConn = &Connector{
-		PostgresDB: postgresConn,
-		MssqlDB:    mssqlConn,
-		ExcelFile:  excelConn,
-	}
-	return SourcesConn, nil
+	return nil, nil
 }
 
 func CloseConnector() error {

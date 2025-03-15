@@ -58,6 +58,8 @@ func (m *Manager) Start() error {
 			defer m.wg.Done()
 			if err := svc.Start(m.ctx); err != nil {
 				log.Printf("Error starting service %s: %v", svc.Name(), err)
+			} else {
+				log.Printf("Service %s started", svc.Name())
 			}
 		}()
 	}

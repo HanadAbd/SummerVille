@@ -2,7 +2,6 @@ package connections
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"time"
 
@@ -26,6 +25,6 @@ func InitMssqlDB(dataSourceName string, maxOpenConns, maxIdleConns int, connMaxL
 		return nil, err
 	}
 
-	fmt.Println("Successfully connected to the MSSQL database!")
+	// fmt.Println("Successfully connected to the MSSQL database!")
 	return db, nil
 }

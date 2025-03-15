@@ -195,5 +195,4 @@ func tableExists(prodDB *sql.DB, tableName, schema string) bool {
 }
 
 func InitETLPipeline() {
-
 }
