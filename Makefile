@@ -7,7 +7,7 @@ JS_EXT := .js
 # TypeScript Compiler
 TSC := tsc
 
-all: clean copy_and_compile start_app
+all: clean copy_and_compile start_docker start_app 
 
 clean:
 	@echo "Removing dist directory..."
@@ -18,19 +18,22 @@ copy_and_compile:
 	@echo "Copying and compiling files..."
 	@mkdir -p $(DIST_DIR)
 	@$(MAKE) copy_files SRC_DIR=$(SRC_DIR) DIST_DIR=$(DIST_DIR)
+	@$(MAKE) convert_to_js
 	@echo "Files copied and compiled."
 
 copy_files:
-	@for src_file in $(shell find $(SRC_DIR) -type f ! -name "*.ts"); do \
-		dist_file=$(DIST_DIR)/$$src_file; \
-		mkdir -p $$(dirname $$dist_file); \
-		cp $$src_file $$dist_file; \
-	done
+	@echo "Copying files from $(SRC_DIR) to $(DIST_DIR)..."
+	@cp -r $(SRC_DIR)/* $(DIST_DIR)/
 
 convert_to_js:
 	@echo "Starting TypeScript compiler..."
-	@$(TSC) --watch
+	@$(TSC)
 	@echo "TypeScript compiler is watching for changes..."
+
+start_docker:
+	@echo "Starting Docker..."
+	@docker-compose up -d
+	@echo "Docker started."
 
 .PHONY: all clean copy_and_compile copy_files convert_to_js
 
