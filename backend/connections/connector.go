@@ -4,7 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"foo/services/util"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -16,30 +19,43 @@ This script will get store the connection types and handle the query to interact
 and return them both to be used elsewhere
 */
 
-type Connector struct {
-	PostgresDB []*postgresConn
-	MssqlDB    []*mssqlConn
-	ExcelFile  []*excelConn
-	Kafka      []*kafkaConn
+var reg *util.Registry
+
+func SetRegistry(r *util.Registry) {
+	reg = r
 }
 
-type excelConn struct {
+type Connector struct {
+	WorkspaceID int
+	PostgresDB  map[string]*PostgresConn
+	MssqlDB     map[string]*MssqlConn
+	ExcelFile   map[string]*ExcelConn
+	Kafka       map[string]*KafkaConn
+}
+
+type WorkspaceConnectors map[int]*Connector
+
+type ProdConn struct {
+	Conn *sql.DB
+}
+
+type ExcelConn struct {
 	File        *excelize.File
 	Name        string
 	Refreshtime time.Time
 }
 
-type postgresConn struct {
+type PostgresConn struct {
 	Conn        *sql.DB
 	Name        string
 	Refreshtime time.Time
 }
-type mssqlConn struct {
+type MssqlConn struct {
 	Conn        *sql.DB
 	Name        string
 	Refreshtime time.Time
 }
-type kafkaConn struct {
+type KafkaConn struct {
 	broker string
 	topic  string
 }
@@ -155,45 +171,194 @@ func WriteQuery(db *sql.DB, query string, w http.ResponseWriter) {
 	}
 }
 
-func GetDataSources() [][]string {
-	rows, err := ProdConn.Query("SELECT * FROM prod.sources")
-	if err != nil {
-		return nil
-	}
-	defer rows.Close()
+var (
+	SourcesConn *Connector
+)
 
-	var data [][]string
-	for rows.Next() {
-		var sourceName, sourceType string
-		var credentials []byte
-		var createdAt, updatedAt time.Time
-		err := rows.Scan(&sourceName, &sourceType, &createdAt, &updatedAt, &credentials)
-		if err != nil {
-			return nil
-		}
-		data = append(data, []string{sourceName, sourceType, createdAt.String()})
-	}
-	return data
+func getMssqlDSN(server, database, trustedConnection string) string {
+	return fmt.Sprintf("server=%s;database=%s;%s", server, database, trustedConnection)
 }
-func SetDataSource(w http.ResponseWriter, r *http.Request) bool {
-	sourceName := r.FormValue("name")
-	sourceType := r.FormValue("sourceType")
-	createdAt := time.Now()
-	updatedAt := time.Now()
-	r.ParseForm()
-	if sourceType == "excel" {
-		excelUrl := r.FormValue("sourceUrl")
-		credentials := map[string]string{"url": excelUrl}
-		credentialsJSON, err := json.Marshal(credentials)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error encoding credentials: %v", err), http.StatusInternalServerError)
-			return false
-		}
-		_, err = ProdConn.Query("INSERT INTO data_sources (source_name, source_type, created_at, updated_at, created_by, credentials) VALUES ($1, $2, $3, $4, $5, $6)", sourceName, sourceType, createdAt, updatedAt, "admin", credentialsJSON)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error inserting data source: %v", err), http.StatusInternalServerError)
-			return false
-		}
+func getPostgresDSN(user, password, dbname, host, port, sslmode string) string {
+	return fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=%s", user, password, dbname, host, port, sslmode)
+}
+
+func GetProdDatabase(config *util.Config) (*ProdConn, error) {
+	ProdConn := &ProdConn{
+		Conn: nil,
 	}
-	return true
+	var err error
+	prodEnv := getProdCred(config)
+	ProdConn.Conn, err = sql.Open("postgres", prodEnv)
+	if err != nil {
+		err = fmt.Errorf("ERROR: Error opening database: %w", err)
+		return nil, err
+	}
+
+	ProdConn.Conn.SetMaxOpenConns(1)
+	ProdConn.Conn.SetMaxIdleConns(1)
+	ProdConn.Conn.SetConnMaxLifetime(0)
+
+	err = ProdConn.Conn.Ping()
+	if err != nil {
+
+		return nil, err
+	}
+
+	return ProdConn, nil
+}
+func getProdCred(c *util.Config) string {
+	return fmt.Sprintf(
+		"user=%s password=%s dbname=%s host=%s port=%s sslmode=%s",
+		c.ProdDBUser,
+		c.ProdDBPassword,
+		c.ProdDBName,
+		c.ProdDBHost,
+		c.ProdDBPort,
+		c.ProdDBSSLMode,
+	)
+}
+
+func InitProdConnector(config *util.Config) (*ProdConn, error) {
+	prodConn, err := GetProdDatabase(config)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	if err := IntaliseProdDB(prodConn.Conn); err != nil {
+		log.Println("Error intialising the Production Database: %q", err)
+		return nil, err
+	}
+	return prodConn, nil
+}
+
+func IntaliseProdDB(conn *sql.DB) error {
+	SourcesConn = &Connector{
+		PostgresDB: make(map[string]*PostgresConn),
+		MssqlDB:    make(map[string]*MssqlConn),
+		ExcelFile:  make(map[string]*ExcelConn),
+		Kafka:      make(map[string]*KafkaConn),
+	}
+
+	// Check if workspace table exists
+	var exists bool
+	err := conn.QueryRow(`
+		SELECT EXISTS (
+			SELECT FROM pg_tables
+			WHERE schemaname = 'prod' AND tablename = 'workspaces'
+		);
+	`).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("error checking workspace table: %v", err)
+	}
+
+	if !exists {
+		// Read and execute workspace.sql
+		workspaceSQL, err := os.ReadFile("backend/initDB/workspace.sql")
+		if err != nil {
+			return fmt.Errorf("error reading workspace.sql: %v", err)
+		}
+		_, err = conn.Exec(string(workspaceSQL))
+		if err != nil {
+			return fmt.Errorf("error executing workspace.sql: %v", err)
+		}
+
+		// Read and execute etlPipeline.sql
+		etlSQL, err := os.ReadFile("backend/initDB/etlPipeline.sql")
+		if err != nil {
+			return fmt.Errorf("error reading etlPipeline.sql: %v", err)
+		}
+		_, err = conn.Exec(string(etlSQL))
+		if err != nil {
+			return fmt.Errorf("error executing etlPipeline.sql: %v", err)
+		}
+
+		log.Println("Database initialized successfully")
+	} else {
+		log.Println("Database tables already exist, skipping initialization")
+	}
+
+	return nil
+}
+
+func EstablishConnection(connector *Connector, sourceName, sourceType string, credentialsJSON []byte, config *util.Config) error {
+	var credentials map[string]string
+	if err := json.Unmarshal(credentialsJSON, &credentials); err != nil {
+		return err
+	}
+
+	switch sourceType {
+	case "postgres":
+		user := credentials["user"]
+		password := credentials["password"]
+		dbname := credentials["dbname"]
+		host := credentials["host"]
+		port := credentials["port"]
+		sslmode := credentials["sslmode"]
+
+		dsn := getPostgresDSN(user, password, dbname, host, port, sslmode)
+		db, err := InitPostgresDB(dsn, 5, 2, 5*time.Minute)
+		if err != nil {
+			return err
+		}
+
+		connector.PostgresDB[sourceName] = &PostgresConn{
+			Conn:        db,
+			Name:        sourceName,
+			Refreshtime: time.Now(),
+		}
+
+	case "mssql":
+		server := credentials["server"]
+		database := credentials["database"]
+		trustedConnection := credentials["trustedConnection"]
+
+		dsn := getMssqlDSN(server, database, trustedConnection)
+		db, err := InitMssqlDB(dsn, 5, 2, 5*time.Minute)
+		if err != nil {
+			return err
+		}
+
+		connector.MssqlDB[sourceName] = &MssqlConn{
+			Conn:        db,
+			Name:        sourceName,
+			Refreshtime: time.Now(),
+		}
+
+	case "excel":
+		url := credentials["url"]
+		file, err := InitExcel(url)
+		if err != nil {
+			return err
+		}
+
+		connector.ExcelFile[sourceName] = &ExcelConn{
+			File:        file,
+			Name:        sourceName,
+			Refreshtime: time.Now(),
+		}
+
+	case "kafka":
+		broker := credentials["broker"]
+		topic := credentials["topic"]
+
+		kafkaConn := InitKafka(broker, topic)
+		connector.Kafka[sourceName] = kafkaConn
+
+	default:
+		return fmt.Errorf("unsupported data source type: %s", sourceType)
+	}
+
+	return nil
+}
+
+func PopulateConnections(config *util.Config) (*Connector, error) {
+	// This function is kept for backward compatibility
+	// For workspace-specific connections, use the ConnectionsService methods
+	return nil, nil
+}
+
+func CloseConnector(config *util.Config) error {
+	//TODO: Close all data based on config, if it's APP_ENV = PROD, close all connections for that, and if dev, close all connections for that
+	return nil
 }

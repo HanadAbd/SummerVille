@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"foo/services/registry"
+	"foo/services/util"
 	"log"
 	"sync"
 )
@@ -16,7 +16,7 @@ type Service interface {
 type Manager struct {
 	services map[string]ServiceConfig
 	wg       sync.WaitGroup
-	registry *registry.Registry
+	registry *util.Registry
 	ctx      context.Context
 	cancel   context.CancelFunc
 }
@@ -31,10 +31,10 @@ func NewManager() *Manager {
 		services: make(map[string]ServiceConfig),
 		ctx:      ctx,
 		cancel:   cancel,
-		registry: registry.NewRegistry(),
+		registry: util.NewRegistry(),
 	}
 }
-func (m *Manager) GetRegistry() *registry.Registry {
+func (m *Manager) GetRegistry() *util.Registry {
 	return m.registry
 }
 
@@ -51,7 +51,7 @@ func (m *Manager) Start() error {
 		if sCfg.started {
 			continue
 		}
-		svc := sCfg.service // Create a new variable to avoid closure issues
+		svc := sCfg.service
 		m.wg.Add(1)
 		go func() {
 

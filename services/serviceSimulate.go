@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"foo/services/registry"
+	"foo/services/util"
 	"foo/simData"
 	"sync"
 )
@@ -12,10 +12,10 @@ type SimulatedService struct {
 	factory     *simData.Factory
 	mutex       sync.RWMutex
 	wg          sync.WaitGroup
-	registry    *registry.Registry
+	registry    *util.Registry
 }
 
-func NewSimulatedService(registry *registry.Registry) *SimulatedService {
+func NewSimulatedService(registry *util.Registry) *SimulatedService {
 	return &SimulatedService{
 		registry: registry,
 	}
@@ -29,8 +29,10 @@ func (s *SimulatedService) Start(ctx context.Context) error {
 	s.wg.Add(1)
 	s.mutex.Lock()
 	s.dataSources = simData.IntialiseConnections()
-	s.factory = simData.IntiliaseFactory()
+	s.factory = simData.IntiliaseFactory(s.dataSources)
 	s.mutex.Unlock()
+
+	simData.SetRegistry(s.registry)
 
 	s.registry.Register("simData.factory", s.factory)
 	s.registry.Register("simData.dataSources", s.dataSources)
@@ -48,7 +50,7 @@ func (s *SimulatedService) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (s *SimulatedService) GetFactory() map[string]*simData.Node {
+func (s *SimulatedService) GetFactory() map[string]interface{} {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return s.factory.GetAllNodes()

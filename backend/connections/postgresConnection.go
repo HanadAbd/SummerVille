@@ -12,7 +12,7 @@ import (
 func InitPostgresDB(source_cred string, maxOpenConns, maxIdleConns int, connMaxLifetime time.Duration) (*sql.DB, error) {
 	db, err := sql.Open("postgres", source_cred)
 	if err != nil {
-		log.Fatalf("Error opening database: %q", err)
+		log.Println("Error opening database: %q", err)
 		return nil, err
 	}
 
@@ -22,7 +22,7 @@ func InitPostgresDB(source_cred string, maxOpenConns, maxIdleConns int, connMaxL
 
 	err = db.Ping()
 	if err != nil {
-		log.Fatalf("Error connecting to the database: %q", err)
+		log.Println("Error connecting to the database: %q", err)
 		return nil, err
 	}
 

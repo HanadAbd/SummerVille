@@ -1,12 +1,13 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
-	"foo/services/registry"
+	"foo/services/util"
 	"foo/simData"
 	"html/template"
-
 	"net/http"
+	"strconv"
 )
 
 func IntaliseTemplates() *template.Template {
@@ -17,7 +18,7 @@ func IntaliseTemplates() *template.Template {
 	return templates
 }
 
-func WebRouting(mux *http.ServeMux, templates *template.Template, registry interface{}) {
+func WebRouting(mux *http.ServeMux, templates *template.Template, registry *util.Registry) {
 
 	mux.HandleFunc("/login", HandlePage(templates, "Login", "login"))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -36,6 +37,10 @@ func WebRouting(mux *http.ServeMux, templates *template.Template, registry inter
 	mux.HandleFunc("/edit/", HandleEdit(templates))
 
 	mux.HandleFunc("/api/etl", HandleNewETL(templates))
+
+	// http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	// 	serveWs(hub, w, r)
+	// })
 
 }
 func HandleEdit(templates *template.Template) http.HandlerFunc {
@@ -69,27 +74,54 @@ func HandleNewETL(templates *template.Template) http.HandlerFunc {
 	}
 }
 
-func HandleTestPage(templates *template.Template, name, file string, register interface{}) http.HandlerFunc {
-	html_file := file + ".html"
-
-	reg := register.(*registry.Registry)
-
-	factoryObj, ok := reg.Get("simData.factory")
-	if !ok {
-		fmt.Printf("Error getting factory object from registry")
-		return nil
+func HandleTestPage(templates *template.Template, name, file string, reg *util.Registry) http.HandlerFunc {
+	if reg == nil {
+		fmt.Printf("Registry is nil")
+		return func(w http.ResponseWriter, r *http.Request) {
+			templates.ExecuteTemplate(w, file+".html", map[string]interface{}{
+				"Title":     name,
+				"AllNodes":  "{}",
+				"NodeCount": "0",
+			})
+		}
 	}
-	factory := factoryObj.(*simData.Factory)
+
+	html_file := file + ".html"
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		templates = IntaliseTemplates()
+
+		// Get factory from registry, but handle the case when it's not available
+		factoryObj, ok := reg.Get("simData.factory")
+
+		var allNodes string = "{}"
+		var nodeCount string = "0"
+
+		if ok && factoryObj != nil {
+			factory := factoryObj.(*simData.Factory)
+			allNodes = jsonify(factory.GetAllNodes())
+			nodeCount = strconv.Itoa(len(factory.GetAllNodes()))
+		} else {
+			fmt.Printf("Factory not available in registry yet\n")
+		}
+
 		data := map[string]interface{}{
 			"Title":     name,
-			"AllNodes":  factory.GetAllNodes(),
-			"NodeCount": factory.GetCount(),
+			"AllNodes":  allNodes,
+			"NodeCount": nodeCount,
 		}
 		templates.ExecuteTemplate(w, html_file, data)
 	}
+}
+func jsonify(reports map[string]interface{}) string {
+	jsonData, err := json.MarshalIndent(reports, "", "  ")
+
+	if err != nil {
+		fmt.Println("Error encoding JSON:", err)
+		return ""
+	}
+
+	return string(jsonData)
 }
 
 // func HandleGetETL(templates *template.Template) http.HandlerFunc {

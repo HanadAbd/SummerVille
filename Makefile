@@ -7,7 +7,7 @@ JS_EXT := .js
 # TypeScript Compiler
 TSC := tsc
 
-all: clean copy_and_compile start_docker start_app 
+all: clean copy_and_compile start_app 
 
 clean:
 	@echo "Removing dist directory..."
@@ -27,13 +27,22 @@ copy_files:
 
 convert_to_js:
 	@echo "Starting TypeScript compiler..."
-	@$(TSC)
-	@echo "TypeScript compiler is watching for changes..."
+	@$(TSC) --watch > /dev/null 2>&1 &
+	@echo "TypeScript compiler is watching for changes in background..."
 
 start_docker:
+	@echo "Checking Docker status..."
+	@if ! docker info > /dev/null 2>&1; then \
+		echo "Docker is not running. Starting Docker Desktop..."; \
+		powershell.exe "Start-Process 'C:\Program Files\Docker\Docker\Docker Desktop.exe'"; \
+		echo "Waiting for Docker to start..."; \
+		while ! docker info > /dev/null 2>&1; do sleep 1; done; \
+	fi
 	@echo "Starting Docker..."
+	@docker-compose down
 	@docker-compose up -d
 	@echo "Docker started."
+
 
 .PHONY: all clean copy_and_compile copy_files convert_to_js
 

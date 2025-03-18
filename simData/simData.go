@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/csv"
 	"fmt"
+	"foo/services/util"
 	"math/rand"
 	"os"
 	"strings"
@@ -45,6 +46,10 @@ type DataSources struct {
 	ConnectionDetails interface{}
 	ConnectionPoint   interface{}
 	Data              *Data
+	NodeID            []string
+	Frequency         int
+	LastUpdate        time.Time
+	DataAdded         float64
 }
 
 func (d *DataSources) Appender(condition bool, c *DataSources, data *Data) {
@@ -87,6 +92,11 @@ func addData(handler func(*DataSources, [][]interface{}) error, c *DataSources, 
 }
 
 var logPath = ""
+var reg *util.Registry
+
+func SetRegistry(registry *util.Registry) {
+	reg = registry
+}
 
 func logging(format string, a ...any) (n int, err error) {
 	message := []byte(fmt.Sprintf(format, a...))
@@ -101,7 +111,26 @@ func logging(format string, a ...any) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
+	if reg != nil {
+		reg.BroadcastToChannel("logs", message)
+	}
 	return n, nil
+}
+
+// New helper functions for structured logging
+func logPartState(partID string, state string, nodeID string) {
+	logMessage := fmt.Sprintf("%s;state;%s;%s\n", partID, state, nodeID)
+	logging(logMessage)
+}
+
+func logPartTransition(partID string, sourceNodeID string, targetNodeID string) {
+	logMessage := fmt.Sprintf("%s;transition;%s;%s\n", partID, sourceNodeID, targetNodeID)
+	logging(logMessage)
+}
+
+func logNodeQueue(nodeID string, queueContents []string) {
+	logMessage := fmt.Sprintf("%s;queue;%s\n", nodeID, strings.Join(queueContents, ","))
+	logging(logMessage)
 }
 
 type MachineState int
@@ -150,21 +179,71 @@ type NodeType interface {
 }
 
 func (n *Node) Start(wg *sync.WaitGroup, connections map[string]*DataSources) {
-
 	defer wg.Done()
+
 	for part := range n.Queue {
-		start := time.Now()
-		logging("%s - [%s] Started processing %s\n", start.Format("2006-01-02 3:4:5"), n.ID, part.ID)
+		// Log part entering node and state change
+		logPartState(part.ID, "Processing", n.ID)
+		n.Event = Processing
+
+		// Process the part
 		time.Sleep(n.ProcessingTime)
 		part.NodeHistory = append(part.NodeHistory, n)
+
+		// Mark as processed
+		logPartState(part.ID, "Processed", n.ID)
+		n.Event = Processed
+
+		// Find next node
 		nextNode := n.NodeType.Process(n, part, connections)
 
 		if nextNode != nil {
-			logging("%s - [%s] Attempting to send %s to %s\n", time.Now().Format("2006-01-02 3:4:5"), n.ID, part.ID, nextNode.ID)
+			// Log transition start (takes 1 second)
+			logPartTransition(part.ID, n.ID, nextNode.ID)
+			time.Sleep(time.Second) // Add 1 second transition time
+
+			// Send to next node
 			nextNode.Queue <- part
-			logging("%s - [%s] Successfully sent %s to %s\n", time.Now().Format("2006-01-02 3:4:5"), n.ID, part.ID, nextNode.ID)
+
+			// Reset to idle after processing
+			n.Event = Idle
+			logPartState(part.ID, "Idle", n.ID)
+
+			// Log queue contents after processing
+			queueContents := getQueueContents(n.Queue)
+			if len(queueContents) > 0 {
+				logNodeQueue(n.ID, queueContents)
+			}
 		}
 	}
+}
+func getQueueContents(queue chan *Part) []string {
+	// This is a non-blocking way to check queue contents
+	// without consuming the queue
+	contents := []string{}
+
+	// Create a snapshot of the queue (non-blocking)
+	queueLen := len(queue)
+	if queueLen == 0 {
+		return contents
+	}
+
+	// Try to get a snapshot of queue contents without blocking
+	tempQueue := make([]string, 0, queueLen)
+
+	for i := 0; i < queueLen; i++ {
+		select {
+		case part := <-queue:
+			tempQueue = append(tempQueue, part.ID)
+			queue <- part // Put it back
+		default:
+			// Queue changed while we were reading it
+			// Just return what we have so far
+			return tempQueue
+		}
+	}
+
+	return tempQueue
 }
 
 func addEdges(factory *Factory, from string, to string) {
@@ -193,9 +272,10 @@ func stationMap(factory *Factory, names ...string) map[string]*Node {
 	return nodes
 }
 
-func IntiliaseFactory() *Factory {
+func IntiliaseFactory(connections map[string]*DataSources) *Factory {
 	factory := &Factory{
-		nodes: make(map[string]*Node),
+		nodes:       make(map[string]*Node),
+		connections: connections,
 	}
 	factory.AddNode("reject", Reject{Name: "reject"}, nil, 0)
 	factory.AddNode("start", Start{Name: "start"}, nil, 0)
@@ -265,7 +345,7 @@ func SimulateData(connections map[string]*DataSources, factory *Factory) {
 		go node.Start(&wg, connections)
 	}
 	start := factory.GetNode("start")
-	rate := 1
+	rate := 3
 	go addParts(start, rate, &wg)
 	wg.Wait()
 
@@ -279,6 +359,7 @@ func SimulateData(connections map[string]*DataSources, factory *Factory) {
 func createLogFile() {
 	// timestamp := time.Now().Format("2006-01-02-15-04-05")
 	// logPath = fmt.Sprintf("simData/log_data/log_%s.txt", timestamp)
-	logPath = fmt.Sprintf("simData/log_data/log.txt")
+	os.RemoveAll("simData/log_data")
 	os.MkdirAll("simData/log_data", 0755)
+	logPath = "simData/log_data/log.txt"
 }

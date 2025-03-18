@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/IBM/sarama"
 )
@@ -149,12 +150,34 @@ type KafkaInitializer struct {
 }
 
 func (k *KafkaInitializer) Initialize(header []string, connection *DataSources) error {
+	if k.broker == "" {
+		return fmt.Errorf("empty Kafka broker address")
+	}
+
+	log.Printf("Attempting to connect to Kafka broker at %s", k.broker)
+
 	config := sarama.NewConfig()
 	config.Producer.Return.Successes = true
 
-	producer, err := sarama.NewSyncProducer([]string{k.broker}, config)
-	if err != nil {
-		log.Fatalf("Error creating producer: %v", err)
+	var producer sarama.SyncProducer
+	var err error
+
+	maxRetries := 5
+	retryDelay := time.Second * 2
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		producer, err = sarama.NewSyncProducer([]string{k.broker}, config)
+		if err == nil {
+			break
+		}
+
+		if attempt == maxRetries {
+			return fmt.Errorf("failed to connect to Kafka after %d attempts: %w", maxRetries, err)
+		}
+
+		log.Printf("Failed to connect to Kafka broker %s (attempt %d/%d): %v. Retrying in %v...",
+			k.broker, attempt, maxRetries, err, retryDelay)
+		time.Sleep(retryDelay)
 	}
 
 	connection.ConnectionPoint = producer

@@ -2,9 +2,10 @@ package services
 
 import (
 	"context"
-	"foo/services/registry"
+	"foo/services/util"
 	"foo/web"
 	"log"
+	"strings"
 	"sync"
 
 	"html/template"
@@ -19,7 +20,7 @@ type WebService struct {
 	templates *template.Template
 	server    *http.Server
 	addr      string
-	registry  *registry.Registry
+	registry  *util.Registry
 
 	upgrader     websocket.Upgrader
 	hub          *Hub
@@ -43,9 +44,11 @@ func newHub() *Hub {
 }
 
 type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
+	hub      *Hub
+	conn     *websocket.Conn
+	send     chan []byte
+	topics   map[string]bool
+	registry *util.Registry
 }
 
 const (
@@ -98,7 +101,7 @@ func (c *Client) writePump() {
 		}
 	}
 }
-func NewWebService(addr string, templates *template.Template, registry *registry.Registry) *WebService {
+func NewWebService(addr string, templates *template.Template, registry *util.Registry) *WebService {
 	mux := http.NewServeMux()
 	return &WebService{
 		mux:       mux,
@@ -188,10 +191,66 @@ func (s *WebService) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := &Client{hub: s.hub, conn: conn, send: make(chan []byte, 256)}
+	topic := r.URL.Query().Get("topic")
+	if topic == "" {
+		topic = "default"
+	}
+	client := &Client{
+		hub:      s.hub,
+		conn:     conn,
+		send:     make(chan []byte, 256),
+		topics:   make(map[string]bool),
+		registry: s.registry,
+	}
+
+	client.topics[topic] = true
+	s.registry.RegisterWSChannel(topic, client.send)
+
 	client.hub.register <- client
 
 	go client.writePump()
+	go client.readPump(s.registry)
+}
+
+func (c *Client) readPump(reg *util.Registry) {
+	defer func() {
+		c.hub.unregister <- c
+		c.conn.Close()
+		// Unregister from all subscribed topics
+		for topic := range c.topics {
+			reg.UnregisterWSChannel(topic, c.send)
+		}
+	}()
+
+	c.conn.SetReadLimit(maxMessageSize)
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	for {
+		_, message, err := c.conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+
+		// Handle subscription messages (simple implementation)
+		// Example: "subscribe:logs" or "unsubscribe:logs"
+		msgStr := string(message)
+		if strings.HasPrefix(msgStr, "subscribe:") {
+			topic := strings.TrimPrefix(msgStr, "subscribe:")
+			c.topics[topic] = true
+			reg.RegisterWSChannel(topic, c.send)
+		} else if strings.HasPrefix(msgStr, "unsubscribe:") {
+			topic := strings.TrimPrefix(msgStr, "unsubscribe:")
+			delete(c.topics, topic)
+			reg.UnregisterWSChannel(topic, c.send)
+		}
+	}
 }
 
 func (s *WebService) Stop(ctx context.Context) error {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"os"
@@ -8,7 +9,7 @@ import (
 	"syscall"
 
 	"foo/services"
-	"foo/services/registry"
+	"foo/services/util"
 
 	"github.com/joho/godotenv"
 )
@@ -33,13 +34,17 @@ func main() {
 	// doBuild()
 	intaliseTemplates()
 	intilaseEnv()
-	config := services.LoadConfig()
+	config, err := util.LoadConfig()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
 
 	manager := services.NewManager()
 
-	registry := manager.GetRegistry()
+	util := manager.GetRegistry()
 
-	createService(config, registry, manager)
+	createService(config, util, manager)
 
 	if err := manager.Start(); err != nil {
 		fmt.Printf("Error starting services: %v\n", err)
@@ -56,15 +61,18 @@ func main() {
 
 }
 
-func createService(config *services.Config, registry *registry.Registry, manager *services.Manager) {
-	connectionsService := services.NewConnectionsService()
+func createService(config *util.Config, registry *util.Registry, manager *services.Manager) {
+	connectionsService := services.NewConnectionsService(config, registry)
 	manager.Register(connectionsService)
-	// manager.StartService(connectionsService)
+	if err := connectionsService.Start(context.Background()); err != nil {
+		fmt.Printf("Error starting connections service: %v\n", err)
+		os.Exit(1)
+	}
 
 	webService := services.NewWebService(config.ServerAddress, templates, registry)
 	manager.Register(webService)
 
-	backendService := services.NewBackendService(webService.GetMux())
+	backendService := services.NewBackendService(webService.GetMux(), registry)
 	manager.Register(backendService)
 
 	simDataService := services.NewSimulatedService(registry)

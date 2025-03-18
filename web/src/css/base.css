@@ -151,7 +151,11 @@ ul {
 
 .sidebar-content{
     overflow: auto;
-    scrollbar-width: none;
+    -ms-overflow-style: none; /* IE and Edge */
+    }
+
+.sidebar-content::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
 }
 
 .side-title, .side-text{
@@ -286,6 +290,10 @@ textarea{
     height: clamp(250px, 350px, 800px);
     width: 100%;
     overflow-y: auto;
+    background-color: #35354F;
+    color: #dfe0ef;
+    overflow: hidden;
+
 }
 
 

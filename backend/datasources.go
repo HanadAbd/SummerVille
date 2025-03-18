@@ -7,32 +7,3 @@ Will contain the API CALLS necessary in order to connect to each of those databa
 */
 
 package backend
-
-import (
-	"fmt"
-	"foo/backend/connections"
-	"foo/backend/route"
-	"net/http"
-)
-
-func StartBackend(mux *http.ServeMux) {
-
-	_, err := connections.InitConnector()
-	if err != nil {
-		fmt.Printf("Error initializing connectors: %v\n", err)
-		return
-	}
-
-	restAPIRequests(mux)
-
-	// etl.Refresh()
-
-}
-func restAPIRequests(mux *http.ServeMux) {
-	mux.HandleFunc("/api/data/mssql", route.HandleMssql)
-	mux.HandleFunc("/api/data/postgres", route.HandlePostgres)
-	mux.HandleFunc("/api/data/excel", route.HandleExcel)
-	mux.HandleFunc("/api/data_sources", route.DataSource)
-	mux.HandleFunc("/api/query", route.HandleQuery)
-	mux.HandleFunc("/api/query/run", route.RunQuery)
-}

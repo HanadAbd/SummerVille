@@ -8,8 +8,12 @@ import (
 	"net/url"
 )
 
-func DataSource(w http.ResponseWriter, r *http.Request) {
-	ProdConn := connections.ProdConn
+/*
+This script will handle the routes for the API
+*/
+
+func DataSource(w http.ResponseWriter, r *http.Request, prodConn *connections.ProdConn, connectors connections.WorkspaceConnectors) {
+	ProdConn := prodConn.Conn
 	if ProdConn == nil {
 		http.Error(w, "Production database not connected", http.StatusInternalServerError)
 		return
@@ -17,7 +21,7 @@ func DataSource(w http.ResponseWriter, r *http.Request) {
 	connections.WriteQuery(ProdConn, "SELECT * FROM prod.data_sources", w)
 }
 
-func HandleQuery(w http.ResponseWriter, r *http.Request) {
+func HandleQuery(w http.ResponseWriter, r *http.Request, prodConn *connections.ProdConn, connectors connections.WorkspaceConnectors) {
 
 	encodeQuery := r.URL.Query().Get("query")
 
@@ -34,12 +38,11 @@ func HandleQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := fmt.Sprintf("SELECT query_text FROM prod.queries WHERE query_name = '%s'", decodedQuery)
-	ProdConn := connections.ProdConn
 
-	connections.WriteQuery(ProdConn, query, w)
+	connections.WriteQuery(prodConn.Conn, query, w)
 }
 
-func RunQuery(w http.ResponseWriter, r *http.Request) {
+func RunQuery(w http.ResponseWriter, r *http.Request, prodConn *connections.ProdConn, connectors connections.WorkspaceConnectors) {
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
@@ -60,11 +63,16 @@ func RunQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ProdConn := connections.ProdConn
+	ProdConn := prodConn.Conn
 	connections.WriteQuery(ProdConn, requestData.Query, w)
 }
-func HandleExcel(w http.ResponseWriter, r *http.Request) {
-	excelConn := connections.SourcesConn.ExcelFile[0].File
+func HandleExcel(w http.ResponseWriter, r *http.Request, prodConn *connections.ProdConn, connectors connections.WorkspaceConnectors) {
+	excelConn := connectors[0].ExcelFile["test"].File
+
+	if excelConn == nil {
+		http.Error(w, "Excel file not connected", http.StatusInternalServerError)
+		return
+	}
 	rows, err := excelConn.GetRows("Sheet1")
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error reading Excel file: %v", err), http.StatusInternalServerError)
@@ -96,12 +104,12 @@ func HandleExcel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
 	}
 }
-func HandlePostgres(w http.ResponseWriter, r *http.Request) {
-	postgresConn := connections.SourcesConn.PostgresDB[0].Conn
+func HandlePostgres(w http.ResponseWriter, r *http.Request, prodConn *connections.ProdConn, connectors connections.WorkspaceConnectors) {
+	postgresConn := connectors[0].PostgresDB["test"].Conn
 	connections.WriteQuery(postgresConn, "SELECT * FROM production_data LIMIT 100", w)
 }
 
-func HandleMssql(w http.ResponseWriter, r *http.Request) {
-	mssqlConn := connections.SourcesConn.MssqlDB[0].Conn
+func HandleMssql(w http.ResponseWriter, r *http.Request, prodConn *connections.ProdConn, connectors connections.WorkspaceConnectors) {
+	mssqlConn := connectors[0].MssqlDB["test"].Conn
 	connections.WriteQuery(mssqlConn, "SELECT TOP 100 * FROM sensor_data", w)
 }

@@ -1,302 +1,47 @@
-interface Window {
+import {Connection} from "./handleSocket.js";
+import {Graph} from "./graph.js";
+
+declare global {
+  interface Window {
     appData: {
-        allNodes: string;
-        count: string;
+      allNodes: string;
+      count: string;
     };
+  }
 }
 
+const canvas = document.getElementById("map") as HTMLCanvasElement;
+const homeButton = document.getElementById("homeButton") as HTMLButtonElement;
+const tooltip = document.getElementById("tooltip") as HTMLElement;
 
-type CanvasMap ={
-    element:HTMLCanvasElement;
-    ctx:CanvasRenderingContext2D;
-    offsetX:number;
-    offsetY:number;
-    scale:number;
-    isDragging:boolean;
-    lastX:number;
-    lastY:number;
-}
+// Initialize graph with empty data if necessary
+const graph = new Graph(canvas, homeButton, tooltip);
+graph.renderCanvas();
 
-type Nodes = {
-    id: string;
-    name: string;
-    type: string;
-    state: string;
-    connects: string[];
-    contains: string[];
-    parameters?: Record<string, any>;
-    position?: Pos;
-};
-
-type Pos ={
-    x:number;
-    y:number;
-    z:number;  
-}
-
-document.addEventListener('DOMContentLoaded', function () {
+const conn = new Connection();
+conn.connectToTopic("logs", (msg:string) => {
+    const logTextArea = document.getElementById("logs") as HTMLTextAreaElement;
+    if (!logTextArea) return;
     
-    console.log(window.appData.allNodes);
-
-
-    console.log(window.appData.count);
-
-    const conn = new WebSocket("ws://localhost:8080/ws");
-    conn.onmessage = function (evt) {
-            var messages = evt.data.split('\n');
-            for (var i = 0; i < messages.length; i++) {
-                console.log(messages[i]);
-            }
-        };  
-
-    intialiseFactoryFloor();
-});
-
-window.addEventListener("resize", function () {
-    clearCanvas();
-    intialiseFactoryFloor();
-});
-function clearCanvas(){
-    const canvas = document.getElementById('factoryFloor') as HTMLCanvasElement;
-    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-    ctx.fillStyle = '#DFE0EF';
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-
-function intialiseFactoryFloor(){
-    const factoryFloor = document.getElementById('factoryFloor') as HTMLCanvasElement;
-    const ctx = factoryFloor.getContext('2d') as CanvasRenderingContext2D;
-    const container = factoryFloor.parentElement as HTMLElement;
-  
-    const canvasMap:CanvasMap = {
-        element:factoryFloor,
-        ctx:ctx,
-        offsetX:0,
-        offsetY:0,
-        scale:1,
-        isDragging:false,
-        lastX:0,
-        lastY:0
-    }
-
-
-    setCanvasSize(canvasMap, container);
-    renderCanvas(canvasMap);
-    intialiseEvents(canvasMap);
-}
-
-function setCanvasSize (canvasMap:CanvasMap, container:HTMLElement) :void {
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    canvasMap.element.width = width;
-    canvasMap.element.height = height;
-    canvasMap.ctx.fillStyle = '#DFE0EF';
-
-    canvasMap.ctx.fillRect(0, 0, width, height);
-}
-function getAllNodes(): Nodes[] {
-    return [
-        {
-            "id": "start",
-            "name": "Start",
-            "type": "start",
-            "state": "idle",
-            "connects": ["station1"],
-            "contains": []
-        },
-        {
-            "id": "complete",
-            "name": "Complete",
-            "type": "end",
-            "state": "idle",
-            "connects": [],
-            "contains": [],
-            "parameters": {
-                "amount": 23
-            }
-        },
-        {
-            "id":"reject",
-            "name":"Reject",
-            "type":"end",
-            "state":"idle",
-            "connects":[],
-            "contains":[],
-            "parameters":{
-                "amount": 2
-            }
-        },
-        {
-            "id": "reject",
-            "name": "Reject",
-            "type": "end",
-            "state": "idle",
-            "connects": [],
-            "contains": []
-        },
-        {
-            "id": "station1",
-            "name": "Cutting Station",
-            "type": "station",
-            "state": "idle",
-            "connects": ["station2"],
-            "contains": ["cutting1", "cutting2", "cutting3"],
-            "parameters": {
-                "failureRate": 0.1,
-                "failureType": "cutting"
-            }
-        },
-        {
-            "id": "station2",
-            "name": "Sensor Station",
-            "type": "station",
-            "state": "idle",
-            "connects": ["complete","reject"],
-            "contains": ["sensor1", "sensor2", "sensor3"]
-        },
-        {
-            "id": "cutting1",
-            "name": "Cutting 1",
-            "type": "cuttingMachine",
-            "state": "idle",
-            "connects": ["station2"],
-            "contains": []
-        },
-        {
-            "id": "cutting2",
-            "name": "Cutting 2",
-            "type": "cuttingMachine",
-            "state": "idle",
-            "connects": ["station2"],
-            "contains": []
-        },
-        {
-            "id": "cutting3",
-            "name": "Cutting 3",
-            "type": "cuttingMachine",
-            "state": "idle",
-            "connects": ["station2"],
-            "contains": []
-        },
-        {
-            "id": "sensor1",
-            "name": "Sensor 1",
-            "type": "sensorMachine",
-            "state": "idle",
-            "connects": ["complete", "reject"],
-            "contains": []
-        },
-        {
-            "id": "sensor2",
-            "name": "Sensor 2",
-            "type": "sensorMachine",
-            "state": "idle",
-            "connects": ["complete", "reject"],
-            "contains": []
-        },
-        {
-            "id": "sensor3",
-            "name": "Sensor 3",
-            "type": "sensorMachine",
-            "state": "idle",
-            "connects": ["complete", "reject"],
-            "contains": []
+    var messages = msg.split('\n');
+    for (var i = 0; i < messages.length; i++) {
+        if (messages[i].trim() !== "") {
+            logTextArea.value += messages[i] + "\n";
+            logTextArea.scrollTop = logTextArea.scrollHeight;
         }
-    
-    ]
-}
-
-
-
-function renderCanvas(canvasMap: CanvasMap):void {
-    clearCanvas()
-    const allNodes = getAllNodes();
-    const nodePositions = calculatePos(allNodes);
-
-    const node = { x: 200, y: 300, radius: 22, color: '#45B7D1', info: 'Node 3: Processing unit' }
-
-    canvasMap.ctx.beginPath();
-    canvasMap.ctx.arc(node.x + canvasMap.offsetX, node.y  + canvasMap.offsetY, node.radius * canvasMap.scale, 0, Math.PI * 2);
-    canvasMap.ctx.fillStyle = node.color;
-    canvasMap.ctx.fill();
-    canvasMap.ctx.strokeStyle = '#35354F';
-    canvasMap.ctx.lineWidth = 3;
-    canvasMap.ctx.stroke();
-}
-
-function calculatePos(nodes:Nodes[],):Record<string, Pos>{
-    const nodePositions:Record<string, Pos> = {};
-    const start = nodes[0];
-    return nodePositions;
-    
-}
-
-function intialiseEvents(canvasMaps:CanvasMap):void{
-    canvasMaps.element.addEventListener('mousedown', (e:MouseEvent) => HandleMouseDown(e, canvasMaps));
-    canvasMaps.element.addEventListener('mousemove', (e:MouseEvent) => HandleMouseMove(e, canvasMaps));
-    canvasMaps.element.addEventListener('mouseup', (e:MouseEvent) => HandleMouseUp(e, canvasMaps));
-    canvasMaps.element.addEventListener('mouseleave', (e:MouseEvent) => HandleMouseUp(e, canvasMaps));
-    canvasMaps.element.addEventListener('wheel', (e:WheelEvent) => HandleMouseWheel(e, canvasMaps));
-    const homeButton = document.getElementById('homeButton') as HTMLButtonElement;
-    homeButton.addEventListener('click', () => resetCanvas(canvasMaps));
-}
-
-function resetCanvas(canvasMap:CanvasMap):void{
-    canvasMap.offsetX = 0;
-    canvasMap.offsetY = 0;
-    canvasMap.scale = 1;
-    renderCanvas(canvasMap);
-}
-
-function HandleMouseDown(e:MouseEvent, canvasMap:CanvasMap):void{
-    const mouseX = e.clientX - canvasMap.element.offsetLeft;
-    const mouseY = e.clientY - canvasMap.element.offsetTop;
-    canvasMap.isDragging = true;
-    canvasMap.lastX = mouseX;
-    canvasMap.lastY = mouseY;
-    canvasMap.element.style.cursor = 'grabbing';
-}
-
-function HandleMouseMove(e:MouseEvent, canvasMap:CanvasMap):void{
-    if(!canvasMap.isDragging){
-        return;
     }
-    const mouseX = e.clientX - canvasMap.element.offsetLeft;
-    const mouseY = e.clientY - canvasMap.element.offsetTop;
-    const dx = mouseX - canvasMap.lastX;
-    const dy = mouseY - canvasMap.lastY;
-    
-    canvasMap.lastX = mouseX;
-    canvasMap.lastY = mouseY;
-
-    canvasMap.offsetX += dx;
-    canvasMap.offsetY += dy;
-
-    renderCanvas(canvasMap);
-}
-
-function HandleMouseUp(e:MouseEvent, canvasMap:CanvasMap):void{
-    canvasMap.isDragging = false;
-}
-
-function HandleMouseWheel(e:WheelEvent, canvasMap:CanvasMap):void{
-    e.preventDefault();
-    const zoomFactor = 0.1;
-    const mouseX = e.offsetX;
-    const mouseY = e.offsetY;
-    
-    if (e.deltaY < 0) {
-        canvasMap.scale += zoomFactor;
-    } else {
-        canvasMap.scale -= zoomFactor;
-        if (canvasMap.scale < 0.5) canvasMap.scale = 0.5; 
+    const messageLength = logTextArea.value.length;
+    const cutOff = 2000;
+    if (messageLength > cutOff) {
+        logTextArea.value = logTextArea.value.substring(messageLength, messageLength - cutOff);
     }
+});
 
-    canvasMap.offsetX = mouseX - (mouseX - canvasMap.offsetX) * (canvasMap.scale / (canvasMap.scale + zoomFactor));
-    canvasMap.offsetY = mouseY - (mouseY - canvasMap.offsetY) * (canvasMap.scale / (canvasMap.scale + zoomFactor));
-
-    renderCanvas(canvasMap);
+try {
+    if (window.appData && window.appData.allNodes) {
+        const nodes = JSON.parse(window.appData.allNodes);
+        graph.setData({ nodes });
+    }
+} catch (error) {
+    console.error('Error loading static node data:', error);
 }
-

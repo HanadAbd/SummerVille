@@ -11,7 +11,8 @@ type Start struct {
 }
 
 func (s Start) Process(n *Node, p *Part, connections map[string]*DataSources) *Node {
-	logging("%s - %s has entered the Factory\n", time.Now().Format("2006-01-02 3:4:5"), p.ID)
+	logPartState(p.ID, "Started", n.ID)
+
 	for _, node := range n.NextNodes {
 		return node
 	}
@@ -23,7 +24,7 @@ type Reject struct {
 }
 
 func (r Reject) Process(n *Node, p *Part, connections map[string]*DataSources) *Node {
-	logging(p.ID, " has been rejected")
+	logPartState(p.ID, "Rejected", n.ID)
 
 	condition := logCondition(n, p, func(n *Node, p *Part) (bool, error) {
 		return true, nil
@@ -38,7 +39,7 @@ type Complete struct {
 }
 
 func (c Complete) Process(n *Node, p *Part, connections map[string]*DataSources) *Node {
-	logging(p.ID, " has been completed")
+	logPartState(p.ID, "Completed", n.ID)
 
 	condition := logCondition(n, p, func(n *Node, p *Part) (bool, error) {
 		return true, nil
@@ -55,19 +56,52 @@ type Station struct {
 
 func (s Station) Process(n *Node, p *Part, connections map[string]*DataSources) *Node {
 	childNodes := n.NodesWithin
-	earliestNode := n.NextNodes["reject"]
+
+	// Check if reject node exists before accessing it
+	var rejectNode *Node
+	var exists bool
+	if rejectNode, exists = n.NextNodes["reject"]; !exists || rejectNode == nil {
+		// Fallback to error node if reject node doesn't exist
+		rejectNode = n.ErrorNode
+		// If error node is also nil, just use the first available next node
+		if rejectNode == nil && len(n.NextNodes) > 0 {
+			for _, node := range n.NextNodes {
+				rejectNode = node
+				break
+			}
+		}
+		// If still nil, log warning and return nil (which will end processing)
+		if rejectNode == nil {
+			logging("Warning: No reject node found for station %s and no fallback available\n", n.ID)
+			return nil
+		}
+	}
+
+	earliestNode := rejectNode
+
 	for _, node := range childNodes {
-		node.NextNodes = n.NextNodes
+		// Make sure all nodes have proper next node references
+		if len(node.NextNodes) == 0 {
+			node.NextNodes = n.NextNodes
+		}
+
+		// Return the first idle node immediately
 		if node.Event == Idle {
 			return node
 		}
-		if len(node.Queue) < len(earliestNode.Queue) {
+
+		// Find the node with the shortest queue
+		if earliestNode == nil || len(node.Queue) < len(earliestNode.Queue) {
 			earliestNode = node
 		}
 	}
-	if earliestNode != n.NextNodes["reject"] {
+
+	// If we found a node with queue shorter than reject's queue, use it
+	if earliestNode != nil && earliestNode != rejectNode {
 		return earliestNode
 	}
+
+	// Otherwise use the error node
 	return n.ErrorNode
 }
 
@@ -112,14 +146,15 @@ func (s Sensor) Process(n *Node, p *Part, connections map[string]*DataSources) *
 }
 
 type Factory struct {
-	nodes map[string]*Node
+	nodes       map[string]*Node
+	connections map[string]*DataSources
 }
 
 func (f *Factory) AddNode(id string, nt NodeType, nw map[string]*Node, pt time.Duration) {
 	nextNodes := make(map[string]*Node)
 	errorNode := f.GetNode("reject")
 	if errorNode == nil && id != "reject" {
-		log.Fatal("Error node not found")
+		log.Println("Error node not found")
 	}
 
 	f.nodes[id] = &Node{
@@ -133,6 +168,14 @@ func (f *Factory) AddNode(id string, nt NodeType, nw map[string]*Node, pt time.D
 		ErrorNode:      errorNode,
 	}
 }
+func (f *Factory) UpdateNode(id string, nt NodeType, nw map[string]*Node, pt time.Duration) {
+	node := f.GetNode(id)
+	if node != nil {
+		node.NodeType = nt
+		node.NodesWithin = nw
+		node.ProcessingTime = pt
+	}
+}
 
 func (f *Factory) GetNode(id string) *Node {
 	node := f.nodes[id]
@@ -141,18 +184,44 @@ func (f *Factory) GetNode(id string) *Node {
 	}
 	return nil
 }
-func (f *Factory) GetAllNodes() map[string]*Node {
-	return f.nodes
-}
 
 func (f *Factory) GetCount() int {
 	return len(f.nodes)
 }
-func (f *Factory) UpdateNode(id string, nt NodeType, nw map[string]*Node, pt time.Duration) {
-	node := f.GetNode(id)
-	if node != nil {
-		node.NodeType = nt
-		node.NodesWithin = nw
-		node.ProcessingTime = pt
+
+func (f *Factory) GetAllNodes() map[string]interface{} {
+	nodes := make(map[string]interface{})
+	for _, node := range f.nodes {
+		nodes[node.ID] = map[string]interface{}{
+			"id":             node.ID,
+			"nodesWithin":    allKeys(node.NodesWithin),
+			"nextNodes":      allKeys(node.NextNodes),
+			"queue":          len(node.Queue),
+			"event":          node.Event.String(),
+			"processingTime": node.ProcessingTime.Seconds(),
+		}
 	}
+	return nodes
+}
+
+func allKeys(m map[string]*Node) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func (f *Factory) GetAllReports() map[string]interface{} {
+	reports := make(map[string]interface{})
+	for _, conn := range f.connections {
+		reports[conn.Name] = map[string]interface{}{
+			"name":       conn.Name,
+			"type":       conn.DataType,
+			"frequency":  conn.Frequency,
+			"lastUpdate": conn.LastUpdate,
+			"dataAdded":  conn.DataAdded,
+		}
+	}
+	return reports
 }
