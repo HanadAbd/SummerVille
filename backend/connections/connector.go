@@ -253,8 +253,13 @@ func IntaliseProdDB(conn *sql.DB) error {
 	}
 
 	if !exists {
+		workDir := "."
+		if os.Getenv("APP_ENV") == "prod" {
+			workDir = "/root"
+		}
+
 		// Read and execute workspace.sql
-		workspaceSQL, err := os.ReadFile("backend/initDB/workspace.sql")
+		workspaceSQL, err := os.ReadFile(fmt.Sprintf("%s/backend/initDB/workspace.sql", workDir))
 		if err != nil {
 			return fmt.Errorf("error reading workspace.sql: %v", err)
 		}
@@ -264,7 +269,7 @@ func IntaliseProdDB(conn *sql.DB) error {
 		}
 
 		// Read and execute etlPipeline.sql
-		etlSQL, err := os.ReadFile("backend/initDB/etlPipeline.sql")
+		etlSQL, err := os.ReadFile(fmt.Sprintf("%s/backend/initDB/etlPipeline.sql", workDir))
 		if err != nil {
 			return fmt.Errorf("error reading etlPipeline.sql: %v", err)
 		}
