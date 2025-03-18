@@ -226,7 +226,7 @@ func InitProdConnector(config *util.Config) (*ProdConn, error) {
 	}
 
 	if err := IntaliseProdDB(prodConn.Conn); err != nil {
-		log.Println("Error intialising the Production Database: %q", err)
+		log.Printf("Error intialising the Production Database: %q\n", err)
 		return nil, err
 	}
 	return prodConn, nil

@@ -11,7 +11,7 @@ import (
 func InitMssqlDB(dataSourceName string, maxOpenConns, maxIdleConns int, connMaxLifetime time.Duration) (*sql.DB, error) {
 	db, err := sql.Open("sqlserver", dataSourceName)
 	if err != nil {
-		log.Println("Error opening database: %q", err)
+		log.Printf("Error opening database: %q\n", err)
 		return nil, err
 	}
 
@@ -21,7 +21,7 @@ func InitMssqlDB(dataSourceName string, maxOpenConns, maxIdleConns int, connMaxL
 
 	err = db.Ping()
 	if err != nil {
-		log.Println("Error connecting to the database: %q", err)
+		log.Printf("Error connecting to the database: %q\n", err)
 		return nil, err
 	}
 
