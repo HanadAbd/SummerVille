@@ -1,25 +1,22 @@
 {
   "workspaces": {
     "myCPU": {
-      "connection1": {
+      "prodDB": {
         "type": "postgres",
         "host": "localhost",
         "port": 5432,
         "user": "postgres",
         "password": "Week7890",
         "database": "prototype-1",
-        "sslmode": "disable"
-      },
-      "connection2": {
-        "type": "mssql",
-        "server": "localhost\\SQLEXPRESS",
-        "database": "master",
-        "trustedConnection": true
+        "sslmode": "disable",
+        "schema": "public"
       },
       "fileConfig": {
-        "excelUrl": "test_data/shift_handover.xlsx"
+        "type": "csv",
+        "url": "simData/test_data/reject.csv"
       },
       "kafkaConfig": {
+        "type": "kafka",
         "broker": "localhost:9092",
         "topic": "factory_metrics"
       }

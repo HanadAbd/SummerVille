@@ -1,13 +1,8 @@
 package util
 
 import (
-	"encoding/json"
 	"os"
 )
-
-type Connections struct {
-	Workspaces map[string]interface{} `json:"workspaces"`
-}
 
 type Config struct {
 	Environment   string
@@ -20,8 +15,6 @@ type Config struct {
 	ProdDBPort     string
 	ProdDBSSLMode  string
 	ProdDBName     string
-
-	Connections Connections
 }
 
 func LoadConfig() (*Config, error) {
@@ -40,15 +33,6 @@ func LoadConfig() (*Config, error) {
 		ProdDBPort:     os.Getenv("PROD_DB_PORT"),
 		ProdDBSSLMode:  os.Getenv("PROD_DB_SSLMODE"),
 		ProdDBName:     os.Getenv("PROD_DB_NAME"),
-	}
-
-	data, err := os.ReadFile("connections.json")
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(data, &cfg.Connections); err != nil {
-		return nil, err
 	}
 
 	if val := os.Getenv("SERVER_ADDR"); val != "" {

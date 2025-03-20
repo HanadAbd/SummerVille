@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+var Reg *Registry
+
 type Registry struct {
 	resources  map[string]interface{}
 	mutex      sync.RWMutex

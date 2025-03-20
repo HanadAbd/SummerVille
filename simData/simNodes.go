@@ -26,11 +26,11 @@ type Reject struct {
 func (r Reject) Process(n *Node, p *Part, connections map[string]*DataSources) *Node {
 	logPartState(p.ID, "Rejected", n.ID)
 
-	condition := logCondition(n, p, func(n *Node, p *Part) (bool, error) {
-		return true, nil
-	})
-	data := &Data{Header: []string{"part_id", "cut_attempts", "cut_val", "rejected_at"}, rows: [][]interface{}{{p.ID, p.Cutattempts, p.CutVal, time.Now()}}}
-	connections["reject"].Appender(condition, connections["reject"], data)
+	// Use new appender with part and node reference
+	if conn, exists := connections["reject"]; exists {
+		conn.Appender(p, n)
+	}
+
 	return nil
 }
 
@@ -41,11 +41,10 @@ type Complete struct {
 func (c Complete) Process(n *Node, p *Part, connections map[string]*DataSources) *Node {
 	logPartState(p.ID, "Completed", n.ID)
 
-	condition := logCondition(n, p, func(n *Node, p *Part) (bool, error) {
-		return true, nil
-	})
-	data := &Data{Header: []string{"part_id", "cut_attempts", "cut_val", "rejected_at"}, rows: [][]interface{}{{p.ID, p.Cutattempts, p.CutVal, time.Now()}}}
-	connections["cutting"].Appender(condition, connections["cutting"], data)
+	// Use new appender with part and node reference
+	if conn, exists := connections["cutting"]; exists {
+		conn.Appender(p, n)
+	}
 
 	return nil
 }
@@ -127,9 +126,11 @@ type Sensor struct {
 
 func (s Sensor) Process(n *Node, p *Part, connections map[string]*DataSources) *Node {
 	minAcceptable, maxAcceptable := 8, 12
+
 	if p.Cutattempts >= 2 {
 		return n.NextNodes["reject"]
 	}
+
 	if p.CutVal < minAcceptable || p.CutVal > maxAcceptable {
 		if p.CutVal < 4 || p.CutVal > 14 {
 			return n.NextNodes["reject"]
@@ -137,11 +138,11 @@ func (s Sensor) Process(n *Node, p *Part, connections map[string]*DataSources) *
 		return n.NextNodes["station1"]
 	}
 
-	condition := logCondition(n, p, func(n *Node, p *Part) (bool, error) {
-		return true, nil
-	})
-	data := &Data{Header: []string{"part_id", "cut_attempts", "cut_val", "rejected_at"}, rows: [][]interface{}{{p.ID, p.Cutattempts, p.CutVal, time.Now()}}}
-	connections["sensor"].Appender(condition, connections["sensor"], data)
+	// Use new appender with part and node reference
+	if conn, exists := connections["sensor"]; exists {
+		conn.Appender(p, n)
+	}
+
 	return n.NextNodes["complete"]
 }
 

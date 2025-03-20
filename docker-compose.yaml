@@ -33,45 +33,6 @@ services:
     networks:
       - app-network
 
-  prod-db:
-    image: postgres:15
-    container_name: summerville-prod-db
-    environment:
-      POSTGRES_USER: ${PROD_DB_USER}
-      POSTGRES_PASSWORD: ${PROD_DB_PASSWORD}
-      POSTGRES_DB: ${PROD_DB_NAME}
-    ports:
-      - "5432:5432"
-    volumes:
-      - prod-db-data:/var/lib/postgresql/data
-      - ./backend/initDB:/docker-entrypoint-initdb.d
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  sim-db:
-    image: postgres:15
-    container_name: summerville-sim-db
-    environment:
-      POSTGRES_USER: ${SIM_DB_USER}
-      POSTGRES_PASSWORD: ${SIM_DB_PASSWORD}
-      POSTGRES_DB: ${SIM_DB_NAME}
-    ports:
-      - "5433:5432"  # Different host port to avoid conflict
-    volumes:
-      - sim-db-data:/var/lib/postgresql/data
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:alpine
     container_name: summerville-redis
@@ -91,21 +52,14 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - PROD_DB_HOST=prod-db
-      - PROD_DB_PORT=5432
-      - SIM_DB_HOST=sim-db
-      - SIM_DB_PORT=5432
       - KAFKA_BROKER=kafka:29092
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - APP_ENV=prod
     volumes:
-      - ./simData/log_data:/root/simData/log_data
-      - ./simData/test_data:/root/simData/test_data
+      - ./backend/initDB:/root/backend/initDB
     depends_on:
-      prod-db:
-        condition: service_healthy
-      sim-db:
-        condition: service_healthy
+      
       kafka:
         condition: service_started
       redis:
@@ -121,6 +75,4 @@ volumes:
   zookeeper-data:
   zookeeper-log:
   kafka-data:
-  prod-db-data:
-  sim-db-data:
   redis-data:

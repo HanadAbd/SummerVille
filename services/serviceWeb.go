@@ -60,7 +60,6 @@ const (
 
 var (
 	newline = []byte{'\n'}
-	space   = []byte{' '}
 )
 
 func (c *Client) writePump() {

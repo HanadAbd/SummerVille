@@ -58,9 +58,9 @@ func (s *BackendService) Start(ctx context.Context) error {
 	}
 
 	// Register routes using the higher-order function
-	s.mux.HandleFunc("/api/data/mssql", makeHandler(route.HandleMssql))
+	// s.mux.HandleFunc("/api/data/mssql", makeHandler(route.HandleMssql))
 	s.mux.HandleFunc("/api/data/postgres", makeHandler(route.HandlePostgres))
-	s.mux.HandleFunc("/api/data/excel", makeHandler(route.HandleExcel))
+	// s.mux.HandleFunc("/api/data/excel", makeHandler(route.HandleExcel))
 	s.mux.HandleFunc("/api/data_sources", makeHandler(route.DataSource))
 	s.mux.HandleFunc("/api/query", makeHandler(route.HandleQuery))
 	s.mux.HandleFunc("/api/query/run", makeHandler(route.RunQuery))

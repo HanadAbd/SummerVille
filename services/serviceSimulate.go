@@ -28,7 +28,7 @@ func (s *SimulatedService) Name() string {
 func (s *SimulatedService) Start(ctx context.Context) error {
 	s.wg.Add(1)
 	s.mutex.Lock()
-	s.dataSources = simData.IntialiseConnections()
+	s.dataSources = simData.IntialiseConnections(s.registry)
 	s.factory = simData.IntiliaseFactory(s.dataSources)
 	s.mutex.Unlock()
 
