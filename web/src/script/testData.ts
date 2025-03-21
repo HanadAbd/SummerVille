@@ -14,7 +14,6 @@ const canvas = document.getElementById("map") as HTMLCanvasElement;
 const homeButton = document.getElementById("homeButton") as HTMLButtonElement;
 const tooltip = document.getElementById("tooltip") as HTMLElement;
 
-// Initialize graph with empty data if necessary
 const graph = new Graph(canvas, homeButton, tooltip);
 graph.renderCanvas();
 

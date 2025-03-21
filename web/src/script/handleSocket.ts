@@ -51,7 +51,6 @@ export class Connection {
         return this.socket;
     }
     
-    // Helper to parse the structured log format
     private parseLogMessage(message: string): any {
         const trimmedMessage = message.trim();
         const parts = trimmedMessage.split(';');

@@ -114,3 +114,5 @@ func HandlePostgres(w http.ResponseWriter, r *http.Request, prodConn *connection
 // 	mssqlConn := connectors[0].MssqlDB["test"].Conn
 // 	connections.WriteQuery(mssqlConn, "SELECT TOP 100 * FROM sensor_data", w)
 // }
+
+
