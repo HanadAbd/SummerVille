@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -34,9 +35,11 @@ func InitPostgresDB(ps *PostgresCred, dm *ConnectionMetrics) (*sql.DB, error) {
 		log.Printf("Error opening database: %q\n", err)
 		return nil, err
 	}
+
 	db.SetMaxOpenConns(dm.OpenConnections)
 	db.SetMaxIdleConns(dm.IdleConnections)
-	db.SetConnMaxLifetime(0)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(2 * time.Minute)
 
 	err = db.Ping()
 	if err != nil {
@@ -50,6 +53,10 @@ func InitPostgresDB(ps *PostgresCred, dm *ConnectionMetrics) (*sql.DB, error) {
 
 func (p *PostgresConn) MonitorConnection(maxAttempts int, delay time.Duration) error {
 	var err error
+	if p == nil || p.Conn == nil {
+		return fmt.Errorf("postgres connection or DB object is nil")
+	}
+
 	if err = p.Conn.Ping(); err != nil {
 		err = p.RetryConnection(maxAttempts, delay)
 	}
@@ -77,6 +84,7 @@ func (p *PostgresConn) InitialiseData(table TableDefinition) error {
 			WHERE table_schema = $1 AND table_name = $2
 		)`
 	var exists bool
+
 	err := p.Conn.QueryRow(query, table.Schema, table.Name).Scan(&exists)
 	if err != nil {
 		return err
@@ -91,6 +99,7 @@ func (p *PostgresConn) InitialiseData(table TableDefinition) error {
 	}
 	return nil
 }
+
 func getCreateTableQuery(table TableDefinition) string {
 	columns := make([]string, 0, len(table.Columns))
 	for _, col := range table.Columns {
@@ -102,67 +111,91 @@ func getCreateTableQuery(table TableDefinition) string {
 
 func (p *PostgresConn) AddData(table TableDefinition, data []interface{}) error {
 	var err error
-	if p == nil || p.Conn == nil {
-		conn, err := InitPostgresDB(&PostgresCred{
-			User:     "postgres",
-			Password: "password",
-			DBName:   "postgres",
-			Host:     "localhost",
-			Port:     "5432",
-			SSLMode:  "disable",
+	if p.Conn == nil {
+
+		host := getEnv("DB_HOST", "localhost")
+		user := getEnv("DB_USER", "postgres")
+		password := getEnv("DB_PASSWORD", "Week7890")
+		dbName := getEnv("DB_NAME", "summervilledb")
+		port := getEnv("DB_PORT", "5432")
+		sslMode := getEnv("DB_SSLMODE", "disable")
+
+		// For Docker environment, use container name
+		if os.Getenv("DOCKER_ENV") == "true" {
+			host = "postgres" // Use the service name from docker-compose
+			log.Printf("Running in Docker environment, connecting to PostgreSQL at %s\n", host)
+		}
+
+		log.Printf("Attempting to connect to PostgreSQL at %s:%s\n", host, port)
+
+		p.Conn, err = InitPostgresDB(&PostgresCred{
+			User:     user,
+			Password: password,
+			DBName:   dbName,
+			Host:     host,
+			Port:     port,
+			SSLMode:  sslMode,
 		}, &ConnectionMetrics{
 			OpenConnections: 1,
-
 			IdleConnections: 1,
 			QueryCount:      0,
 			LastQueryTime:   0,
 		})
 
 		if err != nil {
-			return fmt.Errorf("error intialsing database connection: %q", err)
+			return fmt.Errorf("error initializing database connection: %v", err)
 		}
-		p.Name = table.GetTableName()
-		p.Conn = conn
 
+		if err := p.InitialiseData(table); err != nil {
+			return err
+		}
+
+		return p.insertData(table, data)
 	}
 
-	err = p.InitialiseData(table)
-	if err != nil {
+	if err := p.InitialiseData(table); err != nil {
 		return err
 	}
 
-	var columns []string
-	for _, column := range table.Columns {
-		columns = append(columns, column.Name)
-	}
-
-	var allPlaceholders []string
-	values := make([]any, 0, len(data)*len(columns))
-
-	paramCount := 1
-	for _, item := range data {
-		if m, ok := item.(map[string]any); ok {
-			rowPlaceholders := make([]string, len(columns))
-			for j, col := range columns {
-				rowPlaceholders[j] = fmt.Sprintf("$%d", paramCount)
-				paramCount++
-				values = append(values, m[col])
-			}
-			allPlaceholders = append(allPlaceholders, "("+strings.Join(rowPlaceholders, ", ")+")")
-		}
-	}
-
-	tableName := fmt.Sprintf("%s.%s", table.Schema, table.Name)
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES %s",
-		tableName,
-		strings.Join(columns, ", "),
-		strings.Join(allPlaceholders, ", "))
-
-	_, err = p.Conn.Exec(query, values...)
-	if err == nil {
+	return p.insertData(table, data)
+}
+func (p *PostgresConn) insertData(table TableDefinition, data []interface{}) error {
+	if len(data) == 0 {
 		return nil
 	}
-	return fmt.Errorf("error adding data: %v\n For query: %s \n and values: %v", err, query, values)
+
+	columns := table.GetColumns()
+	columnsStr := strings.Join(columns, ", ")
+
+	if rowMap, ok := data[0].(map[string]interface{}); ok {
+		placeholders := make([]string, len(columns))
+		values := make([]interface{}, len(columns))
+
+		for i, colName := range columns {
+			placeholders[i] = fmt.Sprintf("$%d", i+1)
+			if val, exists := rowMap[colName]; exists {
+				values[i] = val
+			} else {
+				values[i] = nil
+			}
+		}
+
+		query := fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES (%s)",
+			table.Schema, table.Name,
+			columnsStr, strings.Join(placeholders, ", "))
+
+		_, err := p.Conn.Exec(query, values...)
+		return err
+	}
+
+	return fmt.Errorf("unsupported data format")
+}
+
+func getEnv(key, fallback string) string {
+	if value, exists := os.LookupEnv(key); exists && value != "" {
+		return value
+	}
+	return fallback
 }
 
 func (p *PostgresConn) PurgeData(table TableDefinition) error {

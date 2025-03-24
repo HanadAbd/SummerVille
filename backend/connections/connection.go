@@ -18,10 +18,10 @@ This script will get store the connection types and handle the query to interact
 and return them both to be used elsewhere
 */
 
-var reg *util.Registry
+var Reg *util.Registry
 
 func SetRegistry(r *util.Registry) {
-	reg = r
+	Reg = r
 }
 func GetProdDatabase(config *util.Config) (*ProdConn, error) {
 	prodCred := getProdCred(config)
@@ -46,10 +46,10 @@ func GetProdDatabase(config *util.Config) (*ProdConn, error) {
 		return nil, err
 	}
 
-	if reg != nil {
-		reg.Register("prodDB", prodDb)
+	if Reg != nil {
+		Reg.Register("prodDB", prodDb)
 	} else {
-		log.Println("Warning: Registry is nil, skipping registration of prodDB")
+		log.Println("Warning: Registry is nil, skipping Registration of prodDB")
 	}
 
 	return prodDb, nil
@@ -121,44 +121,6 @@ func CloseConnector(config *util.Config) error {
 	//TODO: Close all data based on config, if it's APP_ENV = PROD, close all connections for that, and if dev, close all connections for that
 	return nil
 }
-
-// func handleQuery(db *sql.DB, query string) ([]map[string]interface{}, error) {
-// 	rows, err := db.Query(query)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-
-// 	var results []map[string]interface{}
-// 	cols, err := rows.Columns()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	for rows.Next() {
-// 		columns := make([]interface{}, len(cols))
-// 		columnPointers := make([]interface{}, len(cols))
-// 		for i := range columns {
-// 			columnPointers[i] = &columns[i]
-// 		}
-
-// 		if err := rows.Scan(columnPointers...); err != nil {
-// 			return nil, err
-// 		}
-
-// 		rowMap := make(map[string]interface{})
-// 		for i, colName := range cols {
-// 			val := columnPointers[i].(*interface{})
-// 			rowMap[colName] = *val
-// 		}
-// 		results = append(results, rowMap)
-// 	}
-
-// 	if err := rows.Err(); err != nil {
-// 		return nil, err
-// 	}
-// 	return results, nil
-// }
 
 func WriteQuery(db *sql.DB, query string, w http.ResponseWriter) {
 	query = strings.TrimLeft(query, ";")

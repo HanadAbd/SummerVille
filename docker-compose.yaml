@@ -1,35 +1,38 @@
 services:
-  # Infrastructure services
   postgres:
     image: postgres:latest
     container_name: summerville-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Week7890
+      POSTGRES_DB: summervilledb
     ports:
       - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=Week7890
-      - POSTGRES_DB=summervilledb
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d summervilledb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeper
+    container_name: summerville-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
-    volumes:
-      - zookeeper-data:/var/lib/zookeeper/data
-      - zookeeper-log:/var/lib/zookeeper/log
     networks:
       - app-network
 
   kafka:
     image: confluentinc/cp-kafka:latest
-    container_name: kafka
+    container_name: summerville-kafka
     depends_on:
       - zookeeper
     ports:
@@ -41,51 +44,33 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    volumes:
-      - kafka-data:/var/lib/kafka/data
     networks:
       - app-network
-
-  redis:
-    image: redis:alpine
-    container_name: summerville-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    networks:
-      - app-network
-    command: redis-server --appendonly yes
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: summerville-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     ports:
       - "8080:8080"
     environment:
+      - DOCKER_ENV=true
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=Week7890
+      - DB_NAME=summervilledb
+      - DB_PORT=5432
+      - DB_SSLMODE=disable
       - KAFKA_BROKER=kafka:29092
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - APP_ENV=prod
-      - PROD_DB_USER=postgres
-      - PROD_DB_PASSWORD=Week7890
-      - PROD_DB_NAME=summervilledb
-      - PROD_DB_HOST=postgres
-      - PROD_DB_PORT=5432
-      - PROD_DB_SSLMODE=disable
-      - PORT=8080
-      - SERVER_ADDR=0.0.0.0:8080
     volumes:
-      - ./backend/initDB:/root/backend/initDB
-    depends_on:
-      postgres:
-        condition: service_started
-      kafka:
-        condition: service_started
-      redis:
-        condition: service_started
+      - ./simData/log_data:/app/simData/log_data
     networks:
       - app-network
 
@@ -94,8 +79,4 @@ networks:
     driver: bridge
 
 volumes:
-  zookeeper-data:
-  zookeeper-log:
-  kafka-data:
-  redis-data:
   postgres-data:

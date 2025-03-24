@@ -2,12 +2,9 @@ package services
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"foo/backend/connections"
 	"foo/services/util"
 	"log"
-	"os"
 	"sync"
 	"time"
 )
@@ -43,10 +40,6 @@ func (c *ConnectionsService) Start(ctx context.Context) error {
 	c.monitorCtx, c.monitorCancel = context.WithCancel(context.Background())
 	connections.SetRegistry(c.registry)
 
-	if err := c.initConnections(); err != nil {
-		log.Printf("Error initializing connections: %v", err)
-	}
-
 	c.prodDB, err = connections.GetProdDatabase(c.config)
 	if err != nil {
 		log.Fatalf("Error intialising prodDB: %q\n", err)
@@ -64,137 +57,6 @@ func (c *ConnectionsService) Start(ctx context.Context) error {
 	c.registry.Register("workspaceConnectors", c.workspaceConnectors)
 
 	c.startConnectionMonitor()
-
-	return nil
-}
-
-func (c *ConnectionsService) initConnections() error {
-	// Read connections configuration
-	data, err := os.ReadFile("connections.json")
-	if err != nil {
-		return fmt.Errorf("failed to read connections.json: %w", err)
-	}
-
-	var config struct {
-		Workspaces map[string]map[string]map[string]interface{} `json:"workspaces"`
-	}
-
-	if err := json.Unmarshal(data, &config); err != nil {
-		return fmt.Errorf("failed to parse connections.json: %w", err)
-	}
-
-	// Process each workspace
-	for workspaceName, datasources := range config.Workspaces {
-		workspace := &connections.Connector{
-			WorkspaceID: 1,
-			PostgresDB:  make(map[string]*connections.PostgresConn),
-			CSVfile:     make(map[string]*connections.CSVConn),
-			Kafka:       make(map[string]*connections.KafkaConn),
-		}
-
-		// Process each data source in the workspace
-		for dsName, dsConfig := range datasources {
-			dsType, ok := dsConfig["type"].(string)
-			if !ok {
-				log.Printf("Warning: data source %s in workspace %s has no type", dsName, workspaceName)
-				continue
-			}
-
-			switch dsType {
-			case "postgres":
-				// Initialize PostgreSQL connection
-				host, _ := dsConfig["host"].(string)
-				port, _ := dsConfig["port"].(float64)
-				user, _ := dsConfig["user"].(string)
-				password, _ := dsConfig["password"].(string)
-				database, _ := dsConfig["database"].(string)
-				sslmode, _ := dsConfig["sslmode"].(string)
-
-				pgCred := &connections.PostgresCred{
-					User:     user,
-					Password: password,
-					DBName:   database,
-					Host:     host,
-					Port:     fmt.Sprintf("%.0f", port),
-					SSLMode:  sslmode,
-				}
-
-				db, err := connections.InitPostgresDB(pgCred, &connections.ConnectionMetrics{
-					OpenConnections: 5,
-					IdleConnections: 2,
-					QueryCount:      0,
-					LastQueryTime:   0,
-					Status:          "initializing",
-				})
-
-				if err != nil {
-					log.Printf("Error initializing PostgreSQL connection %s: %v", dsName, err)
-					continue
-				}
-
-				workspace.PostgresDB[dsName] = &connections.PostgresConn{
-					Conn: db,
-					Name: dsName,
-				}
-
-			case "csv":
-				// Initialize CSV connection
-				filepath, _ := dsConfig["url"].(string)
-
-				csvConn := &connections.CSVConn{
-					Name:      dsName,
-					FilePath:  filepath,
-					Connected: false,
-					Metrics: connections.ConnectionMetrics{
-						Status: "initializing",
-					},
-				}
-
-				if err := csvConn.InitCSV(); err != nil {
-					log.Printf("Error initializing CSV connection %s: %v", dsName, err)
-					continue
-				}
-
-				workspace.CSVfile[dsName] = csvConn
-
-			case "kafka":
-				// Initialize Kafka connection
-				broker, _ := dsConfig["broker"].(string)
-				topic, _ := dsConfig["topic"].(string)
-
-				kafkaCredential := &connections.KafkaCredential{
-					Name:   dsName,
-					Broker: broker,
-					Topic:  topic,
-				}
-
-				kafkaConn := &connections.KafkaConn{
-					Name:       dsName,
-					Connected:  false,
-					Credential: kafkaCredential,
-					Metrics: connections.ConnectionMetrics{
-						Status: "initializing",
-					},
-				}
-
-				if _, err := kafkaConn.InitKafka(kafkaCredential, connections.ConnectionMetrics{
-					OpenConnections: 5,
-					IdleConnections: 2,
-					QueryCount:      0,
-					LastQueryTime:   0,
-					Status:          "initializing",
-				}); err != nil {
-					log.Printf("Error initializing Kafka connection %s: %v", dsName, err)
-					continue
-				}
-
-				workspace.Kafka[dsName] = kafkaConn
-			}
-		}
-
-		// Add the workspace to connectors
-		c.workspaceConnectors.AddConnector(1, workspace)
-	}
 
 	return nil
 }
@@ -223,9 +85,23 @@ func (c *ConnectionsService) monitorConnections() {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	for _, workspaceID := range c.workspaceConnectors {
-		for name, conn := range workspaceID.PostgresDB {
-			if conn == nil {
+	// First check if the prodDB is healthy
+	if c.prodDB != nil && c.prodDB.Conn != nil {
+		if err := c.prodDB.MonitorConnection(5, 2*time.Second); err != nil {
+			log.Printf("Production database connection issue: %v", err)
+		}
+	}
+
+	for _, workspace := range c.workspaceConnectors {
+		if workspace == nil {
+			log.Printf("Warning: Found nil workspace connector")
+			continue
+		}
+
+		// Monitor PostgreSQL connections
+		for name, conn := range workspace.PostgresDB {
+			if conn == nil || conn.Conn == nil {
+				log.Printf("Warning: PostgreSQL connection %s is nil", name)
 				continue
 			}
 
@@ -234,8 +110,10 @@ func (c *ConnectionsService) monitorConnections() {
 			}
 		}
 
-		for name, conn := range workspaceID.CSVfile {
+		// Monitor CSV connections
+		for name, conn := range workspace.CSVfile {
 			if conn == nil {
+				log.Printf("Warning: CSV connection %s is nil", name)
 				continue
 			}
 
@@ -248,13 +126,72 @@ func (c *ConnectionsService) monitorConnections() {
 			}
 		}
 
-		for name, conn := range workspaceID.Kafka {
+		// Monitor Kafka connections
+		for name, conn := range workspace.Kafka {
 			if conn == nil {
+				log.Printf("Warning: Kafka connection %s is nil", name)
 				continue
 			}
+
 			if err := conn.MonitorConnection(5, 2*time.Second); err != nil {
 				log.Printf("Kafka connection issue for %s: %v", name, err)
 			}
+		}
+	}
+}
+
+// Helper functions to monitor each type of connection
+func monitorPostgresConnections(connections map[string]*connections.PostgresConn) {
+	if connections == nil {
+		return
+	}
+
+	for name, conn := range connections {
+		if conn == nil || conn.Conn == nil {
+			log.Printf("Warning: PostgreSQL connection %s is nil", name)
+			continue
+		}
+
+		if err := conn.MonitorConnection(5, 2*time.Second); err != nil {
+			log.Printf("PostgreSQL connection issue for %s: %v", name, err)
+		}
+	}
+}
+
+func monitorCSVConnections(connections map[string]*connections.CSVConn) {
+	if connections == nil {
+		return
+	}
+
+	for name, conn := range connections {
+		if conn == nil {
+			log.Printf("Warning: CSV connection %s is nil", name)
+			continue
+		}
+
+		metrics := conn.MonitorConnection()
+		if metrics.Status != "connected" {
+			log.Printf("CSV connection issue for %s: %v", name, metrics.LastError)
+			if err := conn.RetryConnection(5, 2*time.Second); err != nil {
+				log.Printf("Failed to reconnect CSV %s: %v", name, err)
+			}
+		}
+	}
+}
+
+func monitorKafkaConnections(connections map[string]*connections.KafkaConn) {
+	if connections == nil {
+		return
+	}
+
+	for name, conn := range connections {
+		if conn == nil {
+			log.Printf("Warning: Kafka connection %s is nil", name)
+			continue
+		}
+
+		if err := conn.MonitorConnection(5, 2*time.Second); err != nil {
+			log.Printf("Kafka connection issue for %s: %v", name, err)
 		}
 	}
 }

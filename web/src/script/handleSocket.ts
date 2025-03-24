@@ -2,7 +2,7 @@ export class Connection {
     private socket: WebSocket | null;
     private topic: string | null;
     private reconnectAttempts: number = 0;
-    private maxReconnectAttempts: number = 5;
+    private maxReconnectAttempts: number = 10;
     private reconnectInterval: number = 3000; 
     private messageCallback: ((msg: string) => void) | null = null;
 
@@ -35,7 +35,7 @@ export class Connection {
             if (this.messageCallback) {
                 // Parse structured log format
                 const logData = this.parseLogMessage(event.data);
-                this.messageCallback(JSON.stringify(logData));
+                this.messageCallback(logData);
             }
         };
 

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"foo/backend/connections"
 	"foo/services/util"
 	"os"
@@ -27,9 +28,31 @@ func TestConnections(t *testing.T) {
 
 		table, data := createTest(t)
 		err := prodConn.AddData(table, data)
-
 		if err != nil {
 			t.Errorf("Error adding data: %v", err)
+		}
+
+		rows, err := prodConn.Conn.Query(fmt.Sprintf(
+			"SELECT COUNT(*) FROM %s.%s WHERE name = 'test'",
+			table.Schema, table.Name))
+		if err != nil {
+			t.Errorf("Error verifying data: %v", err)
+			return
+		}
+		defer rows.Close()
+
+		var count int
+		if rows.Next() {
+			if err := rows.Scan(&count); err != nil {
+				t.Errorf("Error scanning count: %v", err)
+				return
+			}
+		}
+
+		if count < len(data) {
+			t.Errorf("Expected at least %d rows, but found %d", len(data), count)
+		} else {
+			t.Errorf("Successfully inserted %d rows into %s.%s", count, table.Schema, table.Name)
 		}
 	})
 
@@ -162,7 +185,7 @@ func createTest(t *testing.T) (connections.TableDefinition, []interface{}) {
 		Schema:  "test",
 		Columns: header,
 	}
-	rows := 5
+	rows := 20
 	var data []interface{}
 	data = createTestRows(t, table, rows)
 

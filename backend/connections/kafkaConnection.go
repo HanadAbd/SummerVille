@@ -163,13 +163,11 @@ func (k *KafkaConn) MonitorConnection(maxAttempts int, delay time.Duration) erro
 }
 
 func (k *KafkaConn) AddData(table TableDefinition, data []interface{}) error {
-	// Check if connection needs to be initialized
 	if k == nil {
 		return fmt.Errorf("kafka connection is nil, use NewKafkaConn first")
 	}
 
 	if !k.Connected || k.Producer == nil {
-		// Initialize Kafka connection
 		if k.Credential == nil {
 			k.Credential = &KafkaCredential{
 				Name:   table.Name,
@@ -183,7 +181,6 @@ func (k *KafkaConn) AddData(table TableDefinition, data []interface{}) error {
 		}
 	}
 
-	// Ensure the topic exists
 	if err := k.InitialiseData(table); err != nil {
 		return fmt.Errorf("failed to initialize Kafka topic: %w", err)
 	}
@@ -192,7 +189,6 @@ func (k *KafkaConn) AddData(table TableDefinition, data []interface{}) error {
 	startTime := time.Now()
 
 	for _, item := range data {
-		// Rest of your existing code
 		jsonData, err := json.Marshal(item)
 		if err != nil {
 			return fmt.Errorf("failed to marshal data to JSON: %w", err)

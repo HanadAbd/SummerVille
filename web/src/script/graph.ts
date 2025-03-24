@@ -265,7 +265,7 @@ export class Graph {
                 false
             );
             
-            // Then draw stroke (border) separately to overlay correctly
+            // Then draw stroke (border) separately
             this.roundRect(
                 pos.x - size.width / 2,
                 pos.y - size.height / 2,
@@ -295,6 +295,27 @@ export class Graph {
             this.ctx.fillStyle = this.eventColors[node.event] || '#999999';
             this.ctx.strokeStyle = '#35354F';
             this.ctx.lineWidth = node.id === this.hoverNode?.id ? 4 : 2;
+            
+            // Get queue information
+            const queueContents = this.nodeQueues.get(id) || [];
+            const hasItems = queueContents.length > 0;
+            
+            // Check if node has parts currently being processed
+            const partsAtNode = Array.from(this.partStates.entries())
+                .filter(([_, state]) => state.nodeId === id)
+                .map(([partId, _]) => partId);
+            
+            // Adjust visual based on queue and processing status
+            if (hasItems || partsAtNode.length > 0) {
+                // Use a glow effect for nodes with items in queue or processing
+                this.ctx.shadowColor = node.event === 'Processing' ? 'rgba(52, 168, 83, 0.6)' : 'rgba(251, 188, 5, 0.6)';
+                this.ctx.shadowBlur = 10;
+                this.ctx.shadowOffsetX = 0;
+                this.ctx.shadowOffsetY = 0;
+                
+                // Increase line width for nodes with items
+                this.ctx.lineWidth += 1;
+            }
             
             // Draw based on processing time (circles for 0, rectangles for others)
             if (node.processingTime === 0) {
@@ -332,11 +353,37 @@ export class Graph {
                 );
             }
             
+            // Reset shadow
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
             // Draw node label
             this.ctx.fillStyle = '#333333';
             this.ctx.font = '12px Arial';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(id, pos.x, pos.y + 5);
+            this.ctx.fillText(id, pos.x, pos.y - 5);
+            
+            // Show queue size if any
+            if (hasItems) {
+                this.ctx.fillStyle = '#FF5722';
+                this.ctx.font = 'bold 10px Arial';
+                this.ctx.fillText(`Queue: ${queueContents.length}`, pos.x, pos.y + 15);
+            }
+            
+            // Show processing status if any parts are here
+            if (partsAtNode.length > 0) {
+                this.ctx.fillStyle = '#4285F4';
+                this.ctx.font = 'bold 10px Arial';
+                
+                if (partsAtNode.length === 1) {
+                    // Show the part ID if only one
+                    this.ctx.fillText(`Part: ${partsAtNode[0]}`, pos.x, pos.y + (hasItems ? 30 : 15));
+                } else {
+                    // Just show count if multiple
+                    this.ctx.fillText(`Parts: ${partsAtNode.length}`, pos.x, pos.y + (hasItems ? 30 : 15));
+                }
+            }
         }
     }
 
@@ -357,6 +404,12 @@ export class Graph {
             for (const targetId of sourceNode.nextNodes) {
                 const targetPos = this.nodePositions.get(targetId);
                 if (!targetPos) continue;
+                
+                // Check if there's any part transitioning on this edge
+                const transitingParts = Array.from(this.partsInTransit.entries())
+                    .filter(([_, transit]) => transit.from === sourceId && transit.to === targetId);
+                
+                const isActiveEdge = transitingParts.length > 0;
                 
                 // Calculate direction vector
                 const dx = targetPos.x - sourcePos.x;
@@ -421,12 +474,37 @@ export class Graph {
                     }
                 }
                 
-                // Draw edge
+                // Draw edge with pulse effect if active
                 this.ctx.beginPath();
                 this.ctx.moveTo(startX, startY);
                 this.ctx.lineTo(endX, endY);
-                this.ctx.strokeStyle = '#666666';
-                this.ctx.lineWidth = 1.5;
+                
+                if (isActiveEdge) {
+                    // Active edge with pulse effect
+                    this.ctx.strokeStyle = '#FF5722';
+                    this.ctx.lineWidth = 3;
+                    
+                    // Create gradient for pulse effect
+                    const gradient = this.ctx.createLinearGradient(startX, startY, endX, endY);
+                    
+                    // Pulse effect based on most progressed part
+                    const mostProgressed = transitingParts.reduce((max, current) => 
+                        current[1].progress > max[1].progress ? current : max, transitingParts[0]);
+                    
+                    const progress = mostProgressed[1].progress;
+                    
+                    // Create pulsing gradient
+                    gradient.addColorStop(Math.max(0, progress - 0.2), 'rgba(255, 87, 34, 0.1)');
+                    gradient.addColorStop(progress, 'rgba(255, 87, 34, 0.8)');
+                    gradient.addColorStop(Math.min(1, progress + 0.2), 'rgba(255, 87, 34, 0.1)');
+                    
+                    this.ctx.strokeStyle = gradient;
+                } else {
+                    // Normal edge
+                    this.ctx.strokeStyle = '#666666';
+                    this.ctx.lineWidth = 1.5;
+                }
+                
                 this.ctx.stroke();
                 
                 // Draw arrow head at end point
@@ -444,7 +522,7 @@ export class Graph {
                     endY - arrowSize * Math.sin(angle + Math.PI/6)
                 );
                 this.ctx.closePath();
-                this.ctx.fillStyle = '#666666';
+                this.ctx.fillStyle = isActiveEdge ? '#FF5722' : '#666666';
                 this.ctx.fill();
             }
         }
@@ -459,20 +537,28 @@ export class Graph {
                 const x = sourcePos.x + (targetPos.x - sourcePos.x) * transit.progress;
                 const y = sourcePos.y + (targetPos.y - sourcePos.y) * transit.progress;
                 
-                // Draw part indicator
+                // Draw part indicator with glow effect
+                this.ctx.shadowColor = 'rgba(255, 87, 34, 0.6)';
+                this.ctx.shadowBlur = 10;
+                this.ctx.shadowOffsetX = 0;
+                this.ctx.shadowOffsetY = 0;
+                
                 this.ctx.beginPath();
-                this.ctx.arc(x, y, 6, 0, Math.PI * 2);
+                this.ctx.arc(x, y, 8, 0, Math.PI * 2);
                 this.ctx.fillStyle = '#FF5722';
                 this.ctx.fill();
-                this.ctx.strokeStyle = '#000';
-                this.ctx.lineWidth = 1;
+                this.ctx.strokeStyle = '#FFF';
+                this.ctx.lineWidth = 2;
                 this.ctx.stroke();
+                
+                // Reset shadow
+                this.ctx.shadowBlur = 0;
                 
                 // Draw part ID
                 this.ctx.fillStyle = '#000';
-                this.ctx.font = '10px Arial';
+                this.ctx.font = 'bold 10px Arial';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(partId, x, y - 10);
+                this.ctx.fillText(partId, x, y - 12);
             }
         }
 
@@ -657,6 +743,8 @@ export class Graph {
         const node = this.getNodeAtPosition(mouseX, mouseY);
         if (node) {
             console.log('Clicked on node:', node);
+
+            
             // Could add node selection behavior here
         } else {
             // Start panning
@@ -795,13 +883,31 @@ export class Graph {
             
             // Update transition animations
             for (const [partId, transit] of this.partsInTransit.entries()) {
-                transit.progress += 0.02; // Increment by 2% each frame
+                // Speed up/down based on number of active transitions
+                const transitionSpeed = 0.01 + (0.01 / Math.max(1, this.partsInTransit.size));
+                
+                transit.progress += transitionSpeed;
                 
                 if (transit.progress >= 1) {
                     this.partsInTransit.delete(partId);
+                    
+                    // When transition completes, update part state
+                    this.partStates.set(partId, {
+                        nodeId: transit.to,
+                        state: 'Arrived'
+                    });
                 }
                 
                 needsRedraw = true;
+            }
+            
+            // Add subtle animation for processing nodes
+            if (this.graphData) {
+                for (const [id, node] of Object.entries(this.graphData.nodes)) {
+                    if (node.event === 'Processing') {
+                        needsRedraw = true;
+                    }
+                }
             }
             
             if (needsRedraw) {

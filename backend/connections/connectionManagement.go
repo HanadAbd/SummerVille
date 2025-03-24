@@ -105,6 +105,14 @@ type Connector struct {
 
 type WorkspaceConnectors map[string]*Connector
 
+func GetWorkspaceConnectors() WorkspaceConnectors {
+	connectors, found := Reg.Get("workspaceConnectors")
+	if !found {
+		return nil
+	}
+	return connectors.(WorkspaceConnectors)
+}
+
 func (w *WorkspaceConnectors) AddConnector(workspaceID int, connector *Connector) {
 	(*w)[fmt.Sprintf("%d", workspaceID)] = connector
 }
@@ -113,35 +121,64 @@ func (w *WorkspaceConnectors) GetConnector(workspaceID int) *Connector {
 	return (*w)[fmt.Sprintf("%d", workspaceID)]
 }
 
-func (w *WorkspaceConnectors) AddData(datatype string, table TableDefinition, data []interface{}) error {
+func (w *WorkspaceConnectors) AddData(dataType string, table TableDefinition, data []interface{}) error {
 	connector := w.GetConnector(1)
 	if connector == nil {
-		return fmt.Errorf("connector for workspace ID 1 not found")
+		return fmt.Errorf("no connector found for workspace ID 1")
 	}
 
-	tableName := table.GetTableName()
-
-	switch datatype {
+	var err error
+	switch dataType {
 	case "postgres":
-		if connector.PostgresDB == nil {
-			return fmt.Errorf("postgres connection for %s not found", tableName)
+		connName := fmt.Sprintf("%s_%s", table.Schema, table.Name)
+		conn, exists := connector.PostgresDB[connName]
+		if !exists {
+			for key, val := range connector.PostgresDB {
+				fmt.Println(key, val)
+			}
+			conn = &PostgresConn{Name: connName}
+			connector.PostgresDB[connName] = conn
 		}
-		return connector.PostgresDB[tableName].AddData(table, data)
-	case "csv":
-		if connector.CSVfile[tableName] == nil {
-			connector.CSVfile[tableName] = NewCSVConn(tableName)
-		}
-		return connector.CSVfile[tableName].AddData(table, data)
+		err = conn.AddData(table, data)
+
 	case "kafka":
-		if connector.Kafka[tableName] == nil {
-			connector.Kafka[tableName] = NewKafkaConn(tableName)
+		connName := fmt.Sprintf("%s_%s", table.Schema, table.Name)
+		conn, exists := connector.Kafka[connName]
+		if !exists || conn == nil {
+			conn = &KafkaConn{Name: connName}
+			connector.Kafka[connName] = conn
 		}
-		return connector.Kafka[tableName].AddData(table, data)
+		err = conn.AddData(table, data)
+
+	case "csv":
+		connName := fmt.Sprintf("%s_%s", table.Schema, table.Name)
+		conn, exists := connector.CSVfile[connName]
+		if !exists || conn == nil {
+			conn = &CSVConn{Name: connName}
+			connector.CSVfile[connName] = conn
+		}
+		err = conn.AddData(table, data)
+
 	default:
-		return fmt.Errorf("unsupported data type: %s", datatype)
+		return fmt.Errorf("unsupported data type: %s", dataType)
 	}
+
+	return err
 }
 
+func (w *WorkspaceConnectors) Close() {
+	for _, connector := range *w {
+		for _, conn := range connector.PostgresDB {
+			conn.CloseConnection()
+		}
+		for _, conn := range connector.CSVfile {
+			conn.CloseConnection()
+		}
+		for _, conn := range connector.Kafka {
+			conn.CloseConnection()
+		}
+	}
+}
 func getDefaultMetrics() ConnectionMetrics {
 	return ConnectionMetrics{
 		OpenConnections: 1,

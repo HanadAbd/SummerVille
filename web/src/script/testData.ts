@@ -18,23 +18,44 @@ const graph = new Graph(canvas, homeButton, tooltip);
 graph.renderCanvas();
 
 const conn = new Connection();
-conn.connectToTopic("logs", (msg:string) => {
+conn.connectToTopic("logs", (msg: string) => {
+    // Try to parse message as JSON
+    try {
+        const logData = typeof msg === 'string' ? JSON.parse(msg) : msg;
+        
+        // Update the graph with the log event
+        graph.processLogMessage(logData);
+        
+        // Also update the text log
+        updateTextLog(msg);
+    } catch (e) {
+        // If not valid JSON, just update the text log
+        updateTextLog(msg);
+        console.error("Failed to parse log message:", e);
+    }
+});
+
+function updateTextLog(msg: any) {
     const logTextArea = document.getElementById("logs") as HTMLTextAreaElement;
     if (!logTextArea) return;
     
-    var messages = msg.split('\n');
+    // Make sure msg is a string
+    let textMsg = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2);
+    
+    var messages = textMsg.split('\n');
     for (var i = 0; i < messages.length; i++) {
         if (messages[i].trim() !== "") {
             logTextArea.value += messages[i] + "\n";
             logTextArea.scrollTop = logTextArea.scrollHeight;
         }
     }
+    
     const messageLength = logTextArea.value.length;
     const cutOff = 2000;
     if (messageLength > cutOff) {
-        logTextArea.value = logTextArea.value.substring(messageLength, messageLength - cutOff);
+        logTextArea.value = logTextArea.value.substring(messageLength - cutOff);
     }
-});
+}
 
 try {
     if (window.appData && window.appData.allNodes) {

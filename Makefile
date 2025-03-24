@@ -39,10 +39,16 @@ start_docker:
 		while ! docker info > /dev/null 2>&1; do sleep 1; done; \
 	fi
 	@echo "Starting Docker..."
+	
 	@docker-compose down
-	@docker-compose up -d
-	@echo "Docker started."
+	@echo "Deleting volumes..."
+	@docker volume rm summerville_kafka-data summerville_zookeeper-data summerville_zookeeper-log 2>/dev/null || true
+	
 
+	@docker-compose up -d
+
+
+	@echo "Docker started."
 
 .PHONY: all clean copy_and_compile copy_files convert_to_js
 
