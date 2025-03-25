@@ -47,26 +47,40 @@ func getFactory(t *testing.T) *simData.Factory {
 func TestCreatingNode(t *testing.T) {
 	factory := getFactory(t)
 	queueSize := 100
-	factory.AddNode("test_start", simData.Start{Name: "test_start"}, nil, 0, queueSize)
-	factory.AddNode("test_complete", simData.Complete{Name: "test_complete"}, nil, 0, queueSize)
-	factory.AddNode("test_cutting1", simData.CuttingMachine{Name: "test_cutting1"}, nil, 2*time.Second, queueSize)
-	factory.AddNode("test_sensor1", simData.Sensor{Name: "test_sensor1"}, nil, 3*time.Second, queueSize)
+	factory.AddNode("start", &simData.Start{Name: "start"}, nil, 0, queueSize)
+	factory.AddNode("complete", &simData.Complete{Name: "complete"}, nil, 0, queueSize)
 
-	factory.AddEdges("test_start", "test_cutting1")
-	factory.AddEdges("test_cutting1", "test_sensor1")
-	factory.AddEdges("test_sensor1", "test_complete")
+	factory.AddNode("cutting1", &simData.CuttingMachineNode{
+		Node:                simData.Node{ID: "cutting1", NodeVersion: simData.NodeTypeCuttingMachine},
+		Name:                "Primary Cutter",
+		FailureRate:         0.01,
+		TimeSinceLastRepair: 0,
+		Dullness:            0.0,
+		Tools:               []string{"SteelBlade", "DiamondTip"},
+	}, nil, 2*time.Second, queueSize)
+
+	factory.AddNode("sensor1", &simData.SensorMachineNode{
+		Node:          simData.Node{ID: "sensor1", NodeVersion: simData.NodeTypeSensorMachine},
+		Name:          "Dimensional Scanner",
+		Calibration:   1.0,
+		FailureChance: 0.01,
+	}, nil, 1*time.Second, queueSize)
+
+	factory.AddEdges("start", "cutting1")
+	factory.AddEdges("cutting1", "sensor1")
+	factory.AddEdges("sensor1", "complete")
 
 	if count := factory.GetCount(); count < 4 {
 		t.Errorf("Nodes not added correctly, expected at least 4 but got: %d", count)
 	}
 
-	startNode := factory.GetNode("test_start")
+	startNode := factory.GetNode("start")
 	if startNode == nil {
 		t.Fatal("Start node not found")
 	}
 
-	if len(startNode.NextNodes) != 1 {
-		t.Errorf("Start node should have 1 next node, but has %d", len(startNode.NextNodes))
+	if len(startNode.GetNextNodes()) != 1 {
+		t.Errorf("Start node should have 1 next node, but has %d", len(startNode.GetNextNodes()))
 	}
 
 	t.Log("Nodes added correctly")
@@ -77,7 +91,7 @@ func TestDataSourcesInitialization(t *testing.T) {
 
 	table, data := createTest(t)
 
-	err := connectors.AddData("csv", table, data)
+	err := connectors.AddData("postgres", table, data)
 	if err != nil {
 		t.Errorf("Error adding data: %v", err)
 	}

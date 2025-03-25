@@ -26,13 +26,15 @@ func WebRouting(mux *http.ServeMux, templates *template.Template, registry *util
 	})
 
 	mux.HandleFunc("/home", HandlePage(templates, "Home", "home"))
-	mux.HandleFunc("/datasource", HandlePage(templates, "Datasource", "datasources"))
+	mux.HandleFunc("/datasource", HandlePage(templates, "Datasource", "dataSources"))
 	mux.HandleFunc("/etl", HandlePage(templates, "ETL", "etl"))
 
 	mux.HandleFunc("/query", HandlePage(templates, "Queries", "queries"))
 	mux.HandleFunc("/dashboard", HandlePage(templates, "Dashboard", "dashboard"))
 	mux.HandleFunc("/test-data", HandleTestPage(templates, "Test Data", "testData", registry))
 	mux.HandleFunc("/about", HandlePage(templates, "About myProject", "about"))
+
+	mux.HandleFunc("/system", HandlePage(templates, "System", "system"))
 
 	mux.HandleFunc("/edit/", HandleEdit(templates))
 

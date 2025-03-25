@@ -1,10 +1,6 @@
-type Pos = { 
-    x: number; 
-    y: number; 
-    z: number;
-};
 
-type Node = {
+
+export type Node = {
     id: string;
     name: string;
     event: string;
@@ -17,12 +13,6 @@ type Node = {
     };
 };
 
-type Edge = {
-    source: string;
-    target: string;
-    color: string;
-    width: number;
-};
 
 type GraphData = {
     nodes: {[key: string]: Node};
@@ -48,6 +38,9 @@ export class Graph {
     partsInTransit: Map<string, {from: string, to: string, progress: number}> = new Map();
     partStates: Map<string, {nodeId: string, state: string}> = new Map();
     nodeQueues: Map<string, string[]> = new Map();
+    nodeStates: Map<string, string> = new Map();
+
+    nodeClickCallback: ((node: Node) => void) | null = null;
 
     private offsetX: number;
     private offsetY: number;
@@ -125,7 +118,6 @@ export class Graph {
         const nodes = this.graphData.nodes;
         const nodeIds = Object.keys(nodes);
         
-        // Filter top-level nodes (those that aren't contained within other nodes)
         const topLevelNodeIds = nodeIds.filter(id => {
             return !nodeIds.some(otherId => 
                 nodes[otherId].nodesWithin && 
@@ -139,7 +131,6 @@ export class Graph {
         const availableWidth = width - padding * 2;
         const availableHeight = height - padding * 2;
         
-        // Position top-level nodes in a grid layout
         const cols = Math.ceil(Math.sqrt(topLevelNodeIds.length));
         const rows = Math.ceil(topLevelNodeIds.length / cols);
         const cellWidth = availableWidth / cols;
@@ -155,17 +146,14 @@ export class Graph {
             const x = padding + col * cellWidth + cellWidth / 2;
             const y = padding + row * cellHeight + cellHeight / 2;
             
-            // Store the position
             this.nodePositions.set(id, { x, y });
             
-            // Set size based on whether the node contains other nodes
             const hasContainedNodes = nodes[id].nodesWithin && nodes[id].nodesWithin.length > 0;
             const nodeWidth = hasContainedNodes ? cellWidth * 0.8 : cellWidth * 0.4;
             const nodeHeight = hasContainedNodes ? cellHeight * 0.8 : cellHeight * 0.4;
             
             this.nodeElements.set(id, { width: nodeWidth, height: nodeHeight });
             
-            // Position contained nodes within their parent
             if (hasContainedNodes) {
                 const containedNodes = nodes[id].nodesWithin;
                 const containerPadding = 20;
@@ -198,14 +186,12 @@ export class Graph {
     renderCanvas(): void {
         if (!this.ctx) return;
 
-        // Clear canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.fillStyle = '#DFE0EF';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         if (!this.graphData) {
-            // Draw placeholder node if no data
-            const node = { x: 200, y: 300, radius: 22, color: '#45B7D1' };
+            const node = { x: 200, y: 300, radius: 22, color: this.eventColors['Idle'] };
             this.ctx.beginPath();
             this.ctx.arc(node.x + this.offsetX, node.y + this.offsetY, node.radius * this.scale, 0, Math.PI * 2);
             this.ctx.fillStyle = node.color;
@@ -693,7 +679,6 @@ export class Graph {
     getNodeAtPosition(x: number, y: number): Node | null {
         if (!this.graphData) return null;
         
-        // Adjust for pan and zoom
         x = (x - this.offsetX) / this.scale;
         y = (y - this.offsetY) / this.scale;
         
@@ -703,9 +688,7 @@ export class Graph {
             
             if (!pos || !size) continue;
             
-            // Check if point is inside node
             if (node.processingTime === 0) {
-                // Circle
                 const radius = Math.min(size.width, size.height) / 2;
                 const dx = x - pos.x;
                 const dy = y - pos.y;
@@ -713,7 +696,6 @@ export class Graph {
                     return node;
                 }
             } else {
-                // Rectangle
                 if (x >= pos.x - size.width / 2 &&
                     x <= pos.x + size.width / 2 &&
                     y >= pos.y - size.height / 2 &&
@@ -727,7 +709,7 @@ export class Graph {
     }
 
     addEventListeners(): void {
-        this.canvas.addEventListener('mousedown', (e) => this.mouseDown(e));
+        this.canvas.addEventListener('mousedown', (e) => this.mouseDown(e,this.nodeClickCallback));
         this.canvas.addEventListener('mouseup', () => this.mouseUp());
         this.canvas.addEventListener('mousemove', (e) => this.mouseMove(e));
         this.canvas.addEventListener('wheel', (e) => this.mouseWheel(e));
@@ -735,19 +717,15 @@ export class Graph {
         window.onresize = () => this.resetCanvas();
     }
 
-    mouseDown(e: MouseEvent): void {
+    mouseDown(e: MouseEvent, fn: ((node: Node) => void) | null): void {
         const mouseX = e.clientX - this.canvas.getBoundingClientRect().left;
         const mouseY = e.clientY - this.canvas.getBoundingClientRect().top;
         
-        // Check if clicking on a node
         const node = this.getNodeAtPosition(mouseX, mouseY);
         if (node) {
-            console.log('Clicked on node:', node);
-
+            fn && fn(node);
             
-            // Could add node selection behavior here
         } else {
-            // Start panning
             this.isDragging = true;
             this.lastX = mouseX;
             this.lastY = mouseY;
@@ -760,7 +738,6 @@ export class Graph {
         const mouseY = e.clientY - this.canvas.getBoundingClientRect().top;
         
         if (this.isDragging) {
-            // Handle panning
             const dx = mouseX - this.lastX;
             const dy = mouseY - this.lastY;
             
@@ -772,7 +749,6 @@ export class Graph {
 
             this.renderCanvas();
         } else {
-            // Check for hover
             const node = this.getNodeAtPosition(mouseX, mouseY);
             
             if (node) {
@@ -782,34 +758,33 @@ export class Graph {
                     this.hoverNode = node;
                     this.renderCanvas();
                 }
-                
-                // Show tooltip
-                this.tooltip.style.display = 'block';
-                this.tooltip.style.left = `${e.clientX + 10}px`;
-                this.tooltip.style.top = `${e.clientY + 10}px`;
-                
-                // Format tooltip content
-                let tooltipContent = `
-                    <strong>${node.id}</strong><br>
-                    State: ${node.event}<br>
-                    Processing time: ${node.processingTime}s<br>
-                    ${node.nextNodes && node.nextNodes.length ? `Connections: ${node.nextNodes.join(', ')}` : ''}
-                `;
-                
-                // Add queue contents if any
-                const queueContents = this.nodeQueues.get(node.id);
-                if (queueContents && queueContents.length > 0) {
-                    tooltipContent += `<br><br>Queue: ${queueContents.join(', ')}`;
-                }
+
+                // // Add queue contents if any
+                // const queueContents = this.nodeQueues.get(node.id);
+                // if (queueContents && queueContents.length > 0) {
+                //     tooltipContent += `<br><br>Queue: ${queueContents.join(', ')}`;
+                // }
                 
                 // List parts currently at this node
                 const partsAtNode = Array.from(this.partStates.entries())
                     .filter(([_, state]) => state.nodeId === node.id)
                     .map(([partId, _]) => partId);
                     
-                if (partsAtNode.length > 0) {
-                    tooltipContent += `<br><br>Parts: ${partsAtNode.join(', ')}`;
-                }
+                
+                
+                this.tooltip.style.display = 'block';
+                this.tooltip.style.left = `${e.clientX + 10}px`;
+                this.tooltip.style.top = `${e.clientY + 10}px`;
+                
+                let tooltipContent = `
+                    <strong>${node.id}</strong><br>
+                    State: ${node.event}<br>
+                    Processing time: ${node.processingTime}s<br>
+                    ${node.nextNodes && node.nextNodes.length ? `Connections: ${node.nextNodes.join(', ')}` : ''}
+                    <br>Parts: ${partsAtNode.length}
+                `;
+                
+                
                 
                 this.tooltip.innerHTML = tooltipContent;
             } else {
@@ -852,11 +827,18 @@ export class Graph {
 
     processLogMessage(logData: any): void {
         switch(logData.type) {
-            case 'state':
+            case 'partState':
+                // Handle updates to parts
                 this.partStates.set(logData.partId, {
                     nodeId: logData.nodeId,
                     state: logData.state
                 });
+                break;
+                
+            case 'nodeState':
+                // Handle updates to node state (when part ID is empty)
+                // You might store node states in a separate map
+                this.nodeStates.set(logData.nodeId, logData.state);
                 break;
                 
             case 'transition':
@@ -869,7 +851,13 @@ export class Graph {
                 break;
                 
             case 'queue':
-                this.nodeQueues.set(logData.nodeId, logData.contents);
+                // Store queue information
+                this.nodeQueues.set(logData.nodeId, 
+                    new Array(logData.queueSize).fill('item'));
+                break;
+                
+            case 'raw':
+                console.log('Unrecognized message format:', logData.message);
                 break;
         }
         
@@ -881,7 +869,6 @@ export class Graph {
         const animate = () => {
             let needsRedraw = false;
             
-            // Update transition animations
             for (const [partId, transit] of this.partsInTransit.entries()) {
                 // Speed up/down based on number of active transitions
                 const transitionSpeed = 0.01 + (0.01 / Math.max(1, this.partsInTransit.size));
@@ -901,7 +888,6 @@ export class Graph {
                 needsRedraw = true;
             }
             
-            // Add subtle animation for processing nodes
             if (this.graphData) {
                 for (const [id, node] of Object.entries(this.graphData.nodes)) {
                     if (node.event === 'Processing') {

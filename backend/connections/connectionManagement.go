@@ -9,6 +9,14 @@ import (
 This script will manage the environment by stating how connections are defined in different enviroments
 */
 
+type ConnectionType int
+
+const (
+	Postgres ConnectionType = iota
+	CSV
+	Kafka
+)
+
 type Connections interface {
 	// Write operations
 	AddData(table TableDefinition, data []interface{}) error

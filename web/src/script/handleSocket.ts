@@ -33,10 +33,11 @@ export class Connection {
         
         this.socket.onmessage = (event) => {
             if (this.messageCallback) {
-                // Parse structured log format
                 const logData = this.parseLogMessage(event.data);
                 this.messageCallback(logData);
             }
+
+            // Log raw message to console
         };
 
         this.socket.onclose = () => {
@@ -52,38 +53,84 @@ export class Connection {
     }
     
     private parseLogMessage(message: string): any {
-        const trimmedMessage = message.trim();
-        const parts = trimmedMessage.split(';');
+        // Split the message by newlines and process each line separately
+        const lines = message.split('\n').filter(line => line.trim() !== '');
         
-        if (parts.length < 3) {
-            return { type: 'raw', message: message };
+        // If there are multiple lines, process each line and return the first valid result
+        if (lines.length > 1) {
+            for (const line of lines) {
+                const result = this.parseLogLine(line);
+                if (result.type !== 'raw') {
+                    return result;
+                }
+            }
         }
         
-        // Handle different message types
-        switch(parts[1]) {
-            case 'state':
+        // If no valid result was found or there's only one line, parse it normally
+        return this.parseLogLine(lines[0] || message);
+    }
+
+    private parseLogLine(line: string): any {
+        const trimmedLine = line.trim();
+        
+        if (trimmedLine.startsWith('node=')) {
+            // Handle queue message format: "node=nodeId;queue=count"
+            const parts = trimmedLine.split(';');
+            if (parts.length >= 2 && parts[1].startsWith('queue=')) {
+                const nodeId = parts[0].substring(5); // Remove 'node=' prefix
+                const queueCount = parseInt(parts[1].substring(6)); // Remove 'queue=' prefix
+                
                 return {
-                    type: 'state',
-                    partId: parts[0],
-                    state: parts[2],
-                    nodeId: parts[3]
+                    type: 'queue',
+                    nodeId: nodeId,
+                    queueSize: queueCount,
+                    contents: new Array(queueCount).fill('item')
                 };
-            case 'transition':
+            }
+        }
+        
+        else if (trimmedLine.startsWith('part=')) {
+            // Handle state message format: "part=partId;state=stateValue;node=nodeId"
+            const parts = trimmedLine.split(';');
+            if (parts.length >= 3) {
+                const partIdRaw = parts[0].substring(5); // Remove 'part=' prefix
+                const partId = partIdRaw || 'node_state'; // Use a placeholder for empty part IDs
+                const state = parts[1].substring(6); // Remove 'state=' prefix
+                const nodeId = parts[2].substring(5); // Remove 'node=' prefix
+                
+                // If the part ID is empty, this is a node state update, not a part update
+                if (!partIdRaw) {
+                    return {
+                        type: 'nodeState',
+                        state: state,
+                        nodeId: nodeId
+                    };
+                } else {
+                    return {
+                        type: 'partState',
+                        partId: partId,
+                        state: state,
+                        nodeId: nodeId
+                    };
+                }
+            }
+        }
+        
+        // Handle transition message format: "partId;transition;sourceNode;targetNode"
+        else {
+            const parts = trimmedLine.split(';');
+            if (parts.length >= 4 && parts[1] === 'transition') {
                 return {
                     type: 'transition',
                     partId: parts[0],
                     sourceNode: parts[2],
                     targetNode: parts[3]
                 };
-            case 'queue':
-                return {
-                    type: 'queue',
-                    nodeId: parts[0],
-                    contents: parts[2].split(',')
-                };
-            default:
-                return { type: 'raw', message: message };
+            }
         }
+        
+        // Return raw message for unrecognized formats
+        return { type: 'raw', message: trimmedLine };
     }
 
     private handleDisconnection() {

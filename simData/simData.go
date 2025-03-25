@@ -8,7 +8,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -28,7 +27,7 @@ type DataSource struct {
 	Table      *connections.TableDefinition
 	Data       []interface{}
 	Conditions func(*Node, *Part) bool
-	DataMapper func(p *Part, n *Node) map[string]interface{}
+	DataMapper func(p *Part, n FactoryNode) map[string]interface{}
 }
 
 type DataCondition struct {
@@ -70,8 +69,7 @@ func (d *DataSource) Appender(p *Part, n *Node, dataPoints map[string]interface{
 		return
 	}
 
-	// Check if we have all required columns
-	data := make([]interface{}, 0, 1) // Store a single map for the row
+	data := make([]interface{}, 0, 1)
 	rowData := make(map[string]interface{})
 	missingColumns := []string{}
 
@@ -88,7 +86,6 @@ func (d *DataSource) Appender(p *Part, n *Node, dataPoints map[string]interface{
 		return
 	}
 
-	// Only add the map once
 	data = append(data, rowData)
 
 	err := connectors.AddData(d.DataType, *d.Table, data)
@@ -118,18 +115,19 @@ func logging(format string, a ...any) (n int, err error) {
 	return n, nil
 }
 
-func logPartState(partID string, state string, nodeID string) {
-	logMessage := fmt.Sprintf("%s;state;%s;%s\n", partID, state, nodeID)
+func logPartState(partID string, event MachineState, nodeID string) {
+	logMessage := fmt.Sprintf("part=%s;state=%s;node=%s\n", partID, event, nodeID)
 	logging(logMessage)
 }
 
 func logPartTransition(partID string, sourceNodeID string, targetNodeID string) {
 	logMessage := fmt.Sprintf("%s;transition;%s;%s\n", partID, sourceNodeID, targetNodeID)
 	logging(logMessage)
+	log.Printf("DEBUG: Transition logged - %s moving from %s to %s", partID, sourceNodeID, targetNodeID)
 }
 
-func logNodeQueue(nodeID string, queueContents []string) {
-	logMessage := fmt.Sprintf("%s;queue;%s\n", nodeID, strings.Join(queueContents, ","))
+func logNodeQueue(nodeID string, queueLen int) {
+	logMessage := fmt.Sprintf("node=%s;queue=%d\n", nodeID, queueLen)
 	logging(logMessage)
 }
 
@@ -162,37 +160,19 @@ func SimulateData(connections map[string]*DataSource, factory *Factory, ctx cont
 	cancel()
 
 	for _, node := range factory.nodes {
-		close(node.Queue)
+		close(node.GetQueue())
 	}
 
 	wg.Wait()
 	log.Println("All simulation goroutines have finished")
 }
 
-func getQueueContents(queue chan *Part) []string {
-	contents := []string{}
-
+func getQueueLength(queue chan *Part) int {
 	queueLen := len(queue)
-	if queueLen == 0 {
-		return contents
-	}
-
-	tempQueue := make([]string, 0, queueLen)
-
-	for i := 0; i < queueLen; i++ {
-		select {
-		case part := <-queue:
-			tempQueue = append(tempQueue, part.ID)
-			queue <- part
-		default:
-			return tempQueue
-		}
-	}
-
-	return tempQueue
+	return queueLen
 }
 
-func addParts(start *Node, rate int, wg *sync.WaitGroup, ctx context.Context) {
+func addParts(start FactoryNode, rate int, wg *sync.WaitGroup, ctx context.Context) {
 	defer wg.Done()
 	counter := 0
 
@@ -206,7 +186,7 @@ func addParts(start *Node, rate int, wg *sync.WaitGroup, ctx context.Context) {
 			part := &Part{ID: "part" + fmt.Sprint(counter), Cutattempts: 0}
 
 			select {
-			case start.Queue <- part:
+			case start.GetQueue() <- part:
 				log.Printf("Added new part: %s", part.ID)
 			case <-time.After(500 * time.Millisecond):
 				log.Printf("Queue full, skipping part: %s", part.ID)

@@ -14,12 +14,13 @@ type NodeGetRequest struct {
 }
 
 type NodeSetRequest struct {
-	NodeID         string   `json:"node_id"`
-	NodeType       string   `json:"node_type"`
-	NodesWithin    []string `json:"nodes_within"`
-	NextNodes      []string `json:"next_nodes"`
-	ProcessingTime float64  `json:"processing_time"`
-	Event          string   `json:"event"`
+	NodeID         string      `json:"node_id"`
+	NodeType       string      `json:"node_type"`
+	NodesWithin    []string    `json:"nodes_within"`
+	NextNodes      []string    `json:"next_nodes"`
+	Queue          interface{} `json:"queue"`
+	ProcessingTime float64     `json:"processing_time"`
+	Event          string      `json:"event"`
 }
 
 type NodeSetResponse = simData.Node
@@ -80,14 +81,14 @@ func SetNode(w http.ResponseWriter, r *http.Request, prodConn *connections.ProdC
 		writeJSONErrorResponse(w, http.StatusInternalServerError, "Factory not found")
 		return
 	}
-	nodesWithin := make(map[string]*simData.Node)
+	nodesWithin := make(map[string]simData.FactoryNode)
 	for _, id := range req.NodesWithin {
 		if node := factory.GetNode(id); node != nil {
 			nodesWithin[id] = node
 		}
 	}
 
-	nextNodes := make(map[string]*simData.Node)
+	nextNodes := make(map[string]simData.FactoryNode)
 	for _, id := range req.NextNodes {
 		if node := factory.GetNode(id); node != nil {
 			nextNodes[id] = node
@@ -100,9 +101,9 @@ func SetNode(w http.ResponseWriter, r *http.Request, prodConn *connections.ProdC
 		return
 	}
 
-	node.NodesWithin = nodesWithin
-	node.NextNodes = nextNodes
-	node.ProcessingTime = time.Duration(req.ProcessingTime * float64(time.Second))
+	node.SetNodesWithin(nodesWithin)
+	node.SetNextNodes(nextNodes)
+	node.SetProcessingTime(time.Duration(req.ProcessingTime * float64(time.Second)))
 
 	message := fmt.Sprint("Node ", req.NodeID, " updated")
 	writeJSONResponse(w, http.StatusOK, message, factory.GetNodeData(req.NodeID))

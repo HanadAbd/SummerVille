@@ -1,5 +1,4 @@
 {{template "header" .}}
-<script type="module" src="/static/script/testData.js"></script>
 <style>
     :root {
         --page-height: calc(100vh - 120px);
@@ -388,10 +387,13 @@
             <div class ="edit-container">
                 <textarea id="edit-node" class="query-text
                 area" placeholder="Please Select a Node to view it's performance"></textarea>
+                <span id="edit-status">Example Message Request</span>
+
                 <div class="query-buttons">
-                    <button class="btn btn-primary">Save</button>
-                    <button class="btn btn-primary">Cancel</button>
+                    <button id="edit-save" class="btn btn-primary" >Save</button>
+                    <button id = "edit-cance" class="btn btn-primary" onclick="document.getElementById('edit-node').value = ''">Cancel</button>
                 </div>
+
             </div>
         </div>
         <div class="side-bar-footer">
@@ -406,3 +408,5 @@
         nodeCount: '{{.NodeCount}}'
     };
 </script>
+<script type="module" src="/static/script/testData.js"></script>
+

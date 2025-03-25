@@ -67,7 +67,7 @@ func (s *BackendService) Start(ctx context.Context) error {
 	s.mux.HandleFunc("/api/query", makeHandler(route.HandleQuery))
 	s.mux.HandleFunc("/api/query/run", makeHandler(route.RunQuery))
 	s.mux.HandleFunc("/api/simdata/get_node", makeHandler(route.GetNode))
-	s.mux.HandleFunc("/api/simdata/set_node", makeHandler(route.GetNode))
+	s.mux.HandleFunc("/api/simdata/set_node", makeHandler(route.SetNode))
 
 	<-ctx.Done()
 	return nil

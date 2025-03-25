@@ -13,9 +13,13 @@
         height: clamp(300px, 80%, 800px);
         background-color: var(--container-color);
         margin-bottom: 30px;
-              display: inline-block;
-            position: relative;
+        display: inline-block;
+        position: relative;
 
+    }
+
+    .sidebar{
+        display: none;
     }
     .tab-navigation{
         display: flex;
@@ -46,9 +50,9 @@
     .tab-content.active {
         display: block;
     }
-
     
-    #etl-timeline {
+    
+    #main-etl-timeline {
         width: 100%;
             height: 100%;
             display: block; /* Removes extra spacing */
@@ -131,7 +135,7 @@
 <main>
     <div class="main-container">
         <div class="main-timeline">
-            <canvas id="etl-timeline"></canvas>
+            <canvas id="main-etl-timeline"></canvas>
             <div class="query-toggle">
             <label class="switch">
                 <input type="checkbox" id="query-toggle" title="Toggle to show or hide queries">
@@ -152,11 +156,10 @@
         <div class="side-flex">
             <button class="btn btn-primary close" onclick="
             document.querySelector('.sidebar').style.display = 'none'
-            document.querySelector('main').style.margin = '0 auto'">Close
-            </button>
+            document.querySelector('main').style.margin = '0 auto'">Close</button>
 
             <div class="side-timeline">
-                <canvas id="etl-timeline"></canvas>
+                <canvas id="side-etl-timeline"></canvas>
             </div>
             <div class ="pipeline-history">
                 <textarea name="history" id="history" cols="30" rows="10" placeholder="Pipeline history"></textarea>
@@ -180,7 +183,8 @@
 </main> 
 
 <script>
-    const canvas = document.getElementById('etl-timeline');
+    console.log("Hello")
+    const canvas = document.getElementById('main-etl-timeline');
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     const ctx = canvas.getContext("2d");
