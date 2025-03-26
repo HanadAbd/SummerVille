@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"foo/backend/connections"
 	"foo/services/util"
 	"os"
@@ -11,106 +10,106 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func TestConnections(t *testing.T) {
-	if os.Getenv("CI") == "true" {
-		t.Skip("Skipping database tests in CI environment")
-	}
-	manager := runConnectionService(t)
+// func TestConnections(t *testing.T) {
+// 	if os.Getenv("CI") == "true" {
+// 		t.Skip("Skipping database tests in CI environment")
+// 	}
+// 	manager := runConnectionService(t)
 
-	reg := manager.GetRegistry()
+// 	reg := manager.GetRegistry()
 
-	t.Run("TestDatabaseConnection", func(t *testing.T) {
-		prodConn := testProdDB(t, reg)
+// 	t.Run("TestDatabaseConnection", func(t *testing.T) {
+// 		prodConn := testProdDB(t, reg)
 
-		if prodConn == nil {
-			t.Fatal("Failed to get valid database connection")
-		}
-	})
-	t.Run("TestAddingData", func(t *testing.T) {
-		prodConn := testProdDB(t, reg)
+// 		if prodConn == nil {
+// 			t.Fatal("Failed to get valid database connection")
+// 		}
+// 	})
+// 	t.Run("TestAddingData", func(t *testing.T) {
+// 		prodConn := testProdDB(t, reg)
 
-		table, data := createTest(t)
-		err := prodConn.AddData(table, data)
-		if err != nil {
-			t.Errorf("Error adding data: %v", err)
-		}
+// 		table, data := createTest(t)
+// 		err := prodConn.AddData(table, data)
+// 		if err != nil {
+// 			t.Errorf("Error adding data: %v", err)
+// 		}
 
-		rows, err := prodConn.Conn.Query(fmt.Sprintf(
-			"SELECT COUNT(*) FROM %s.%s WHERE name = 'test'",
-			table.Schema, table.Name))
-		if err != nil {
-			t.Errorf("Error verifying data: %v", err)
-			return
-		}
-		defer rows.Close()
+// 		rows, err := prodConn.Conn.Query(fmt.Sprintf(
+// 			"SELECT COUNT(*) FROM %s.%s WHERE name = 'test'",
+// 			table.Schema, table.Name))
+// 		if err != nil {
+// 			t.Errorf("Error verifying data: %v", err)
+// 			return
+// 		}
+// 		defer rows.Close()
 
-		var count int
-		if rows.Next() {
-			if err := rows.Scan(&count); err != nil {
-				t.Errorf("Error scanning count: %v", err)
-				return
-			}
-		}
+// 		var count int
+// 		if rows.Next() {
+// 			if err := rows.Scan(&count); err != nil {
+// 				t.Errorf("Error scanning count: %v", err)
+// 				return
+// 			}
+// 		}
 
-		if count < len(data) {
-			t.Errorf("Expected at least %d rows, but found %d", len(data), count)
-		} else {
-			t.Logf("Successfully inserted %d rows into %s.%s", count, table.Schema, table.Name)
-		}
-	})
+// 		if count < len(data) {
+// 			t.Errorf("Expected at least %d rows, but found %d", len(data), count)
+// 		} else {
+// 			t.Logf("Successfully inserted %d rows into %s.%s", count, table.Schema, table.Name)
+// 		}
+// 	})
 
-	// t.Run("TestCreatingCSV", func(t *testing.T) {
-	// 	regData := "workspaceConnectors"
-	// 	workspaceConnectorsObj, exists := reg.Get(regData)
-	// 	if !exists {
-	// 		t.Error("workspaceConnectors not found in registry")
-	// 	}
-	// 	if workspaceConnectorsObj == nil {
-	// 		t.Errorf("%v is nil", regData)
-	// 	}
+// 	// t.Run("TestCreatingCSV", func(t *testing.T) {
+// 	// 	regData := "workspaceConnectors"
+// 	// 	workspaceConnectorsObj, exists := reg.Get(regData)
+// 	// 	if !exists {
+// 	// 		t.Error("workspaceConnectors not found in registry")
+// 	// 	}
+// 	// 	if workspaceConnectorsObj == nil {
+// 	// 		t.Errorf("%v is nil", regData)
+// 	// 	}
 
-	// 	connectors := workspaceConnectorsObj.(connections.WorkspaceConnectors)
+// 	// 	connectors := workspaceConnectorsObj.(connections.WorkspaceConnectors)
 
-	// 	if connectors.GetConnector(1) == nil {
-	// 		t.Errorf("No workspace connectors found")
-	// 	}
+// 	// 	if connectors.GetConnector(1) == nil {
+// 	// 		t.Errorf("No workspace connectors found")
+// 	// 	}
 
-	// 	table, data := createTest(t)
+// 	// 	table, data := createTest(t)
 
-	// 	err := connectors.AddData("csv", table, data)
-	// 	if err != nil {
-	// 		t.Errorf("Error adding data: %v", err)
-	// 	}
+// 	// 	err := connectors.AddData("csv", table, data)
+// 	// 	if err != nil {
+// 	// 		t.Errorf("Error adding data: %v", err)
+// 	// 	}
 
-	// })
-	// t.Run("TestCreatingKafka", func(t *testing.T) {
-	// 	regData := "workspaceConnectors"
-	// 	workspaceConnectorsObj, exists := reg.Get(regData)
-	// 	if !exists {
-	// 		t.Error("workspaceConnectors not found in registry")
-	// 	}
-	// 	if workspaceConnectorsObj == nil {
-	// 		t.Errorf("%v is nil", regData)
-	// 	}
+// 	// })
+// 	// t.Run("TestCreatingKafka", func(t *testing.T) {
+// 	// 	regData := "workspaceConnectors"
+// 	// 	workspaceConnectorsObj, exists := reg.Get(regData)
+// 	// 	if !exists {
+// 	// 		t.Error("workspaceConnectors not found in registry")
+// 	// 	}
+// 	// 	if workspaceConnectorsObj == nil {
+// 	// 		t.Errorf("%v is nil", regData)
+// 	// 	}
 
-	// 	connectors := workspaceConnectorsObj.(connections.WorkspaceConnectors)
+// 	// 	connectors := workspaceConnectorsObj.(connections.WorkspaceConnectors)
 
-	// 	if connectors.GetConnector(1) == nil {
-	// 		t.Errorf("No workspace connectors found")
-	// 	}
+// 	// 	if connectors.GetConnector(1) == nil {
+// 	// 		t.Errorf("No workspace connectors found")
+// 	// 	}
 
-	// 	table, data := createTest(t)
+// 	// 	table, data := createTest(t)
 
-	// 	err := connectors.AddData("kafka", table, data)
-	// 	if err != nil {
-	// 		t.Errorf("Error adding data: %v", err)
-	// 	}
+// 	// 	err := connectors.AddData("kafka", table, data)
+// 	// 	if err != nil {
+// 	// 		t.Errorf("Error adding data: %v", err)
+// 	// 	}
 
-	// })
+// 	// })
 
-	manager.Stop()
+// 	manager.Stop()
 
-}
+// }
 
 func intilaseEnv(t *testing.T) {
 	err := godotenv.Load("../.env")

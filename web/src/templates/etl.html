@@ -1,13 +1,20 @@
 {{template "header" .}}
-
 <style>
     main {
         padding: 2rem;
-        width: clamp(300px, 80%, 1400px);
+        width: clamp(300px, 95%, 1400px);
         margin: 0 auto;
         height: 88vh;
         overflow-y: auto;
+        display: flex; /* Make main a flex container */
+        gap: 20px; /* Space between main content and sidebar */
     }
+    
+    .content-wrapper {
+        flex: 1; /* Take up available space */
+        min-width: 0; /* Prevent flex items from overflowing */
+    }
+    
     .main-container {
         width: 100%;
         height: clamp(300px, 80%, 800px);
@@ -15,12 +22,19 @@
         margin-bottom: 30px;
         display: inline-block;
         position: relative;
-
     }
 
-    .sidebar{
+    .sidebar {
         display: none;
+        width: 300px; /* Fixed width for sidebar */
+        background-color: var(--accent-color); /* Blue background */
+        background-color: var(--container-color);
+        padding: 15px;
+        border-radius: 5px;
+        height: fit-content;
+        flex-shrink: 0; /* Prevent sidebar from shrinking */
     }
+    
     .tab-navigation{
         display: flex;
         gap: 0px;
@@ -59,6 +73,9 @@
             position: absolute;
             top: 0;
             left: 0;
+    }
+    #side-etl-timeline{
+        width: 260px;
     }
 
     .query-toggle {
@@ -124,116 +141,578 @@
         border-radius: 50%;
     }
     .side-flex{
+        background-color: var(--container-color);
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
         height: 100%;
     }
+    .main-editor {
+        width: 100%;
+        height: 100%;
+        background-color: var(--container-color);
+        padding: 20px;
+        overflow: auto;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .data-table th, .data-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    
+    .data-table th {
+        background-color: #f2f2f2;
+        position: sticky;
+        top: 0;
+    }
+    
+    .data-table tbody tr:nth-child(even) {
+        background-color: rgba(0,0,0,0.02);
+    }
+    
+    .data-table tbody tr:hover {
+        background-color: rgba(0,0,0,0.05);
+    }
+    
+    #history {
+        width: 100%;
+        height: 300px;
+        font-family: monospace;
+        padding: 10px;
+        margin-top: 20px;
+        background-color: #f8f8f8;
+        color: var(--text-color);
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .tab-content {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    /* Utility classes for statistics in the Performance section */
+    .metric-card {
+        text-align: center;
+        transition: transform 0.2s;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
     
 </style>
 
 <main>
-    <div class="main-container">
-        <div class="main-timeline">
-            <canvas id="main-etl-timeline"></canvas>
-            <div class="query-toggle">
-            <label class="switch">
-                <input type="checkbox" id="query-toggle" title="Toggle to show or hide queries">
-                <span class="slider round"></span>
-            </label>
-            <span>Show Queries</span>
+    <div class="content-wrapper">
+        <div class="main-container">
+            <div class="main-timeline">
+                <canvas id="main-etl-timeline"></canvas>
+                <div class="query-toggle">
+                <label class="switch">
+                    <input type="checkbox" id="query-toggle" title="Toggle to show or hide queries">
+                    <span class="slider round"></span>
+                </label>
+                <span>Show Queries</span>
+                </div>
+                <div id="node-tooltip" style="display: none; position: absolute; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; pointer-events: none; z-index: 10;"></div>
             </div>
-            <div id="node-tooltip" style="display: none; position: absolute; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; pointer-events: none; z-index: 10;"></div>
-
-            
+            <div class="main-editor" style="display: none;">
+            </div>
         </div>
-        <div class ="main-editor" style="display: none;">
 
+        <div class="container tab-container cont-performance">
+            <div class="tab-navigation">
+                <button data-tab="1">Refreshes</button>
+                <button data-tab="2">Performance</button>
+            </div>
+            <div class="tab-contents">
+                <div class="tab-content" data-tab="1">Content for Container 1, Tab 1</div>
+                <div class="tab-content" data-tab="2">Content for Container 1, Tab 2</div>
+            </div>  
         </div>
     </div>
 
     <section class="sidebar">
         <div class="side-flex">
             <button class="btn btn-primary close" onclick="
-            document.querySelector('.sidebar').style.display = 'none'
-            document.querySelector('main').style.margin = '0 auto'">Close</button>
+            document.querySelector('.sidebar').style.display = 'none';
+            document.querySelector('main').style.removeProperty('justify-content');">Close</button>
 
             <div class="side-timeline">
                 <canvas id="side-etl-timeline"></canvas>
             </div>
-            <div class ="pipeline-history">
+            <div class="pipeline-history">
                 <textarea name="history" id="history" cols="30" rows="10" placeholder="Pipeline history"></textarea>
             </div>
         </div>
     </section>
-
-    <div class="container tab-container cont-performance">
-        <div class="tab-navigation">
-            <button data-tab="1">Refreshes</button>
-            <button data-tab="2">Performance</button>
-            <button data-tab="3">Query Usage</button>
-        </div>
-        <div class="tab-contents">
-            <div class="tab-content" data-tab="1">Content for Container 1, Tab 1</div>
-            <div class="tab-content" data-tab="2">Content for Container 1, Tab 2</div>
-            <div class="tab-content" data-tab="3">Content for Container 1, Tab 3</div>
-
-        </div>  
-    </div>
-</main> 
+</main>
 
 <script>
-    console.log("Hello")
+    console.log("ETL Pipeline Visualization Loaded");
+
+    // Utility to generate random data
+    const generateFakeData = () => {
+        const randomDate = () => {
+            const start = new Date(2024, 0, 1);
+            const end = new Date();
+            return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+        };
+
+        const randomTime = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
+
+        // Generate data records with columns and types
+        const generateDataRecords = (columns, rowCount = 10) => {
+            const records = [];
+            for (let i = 0; i < rowCount; i++) {
+                const record = {};
+                columns.forEach(col => {
+                    switch (col.type) {
+                        case 'string':
+                            record[col.name] = `sample-${Math.random().toString(36).substring(2, 8)}`;
+                            break;
+                        case 'integer':
+                            record[col.name] = Math.floor(Math.random() * 1000);
+                            break;
+                        case 'float':
+                            record[col.name] = +(Math.random() * 100).toFixed(2);
+                            break;
+                        case 'boolean':
+                            record[col.name] = Math.random() > 0.5;
+                            break;
+                        case 'date':
+                            record[col.name] = randomDate().toISOString().split('T')[0];
+                            break;
+                        default:
+                            record[col.name] = `default-${i}`;
+                    }
+                });
+                records.push(record);
+            }
+            return records;
+        };
+
+        return {
+            // Generate refresh history data
+            refreshHistory: Array.from({ length: 20 }, (_, i) => ({
+                id: `refresh-${i + 1}`,
+                datasource: ['CRM', 'Sales', 'Inventory', 'Marketing', 'Users'][Math.floor(Math.random() * 5)],
+                refreshTime: randomDate().toISOString(),
+                refreshType: Math.random() > 0.7 ? 'Full Recomputation' : 'Incremental',
+                status: Math.random() > 0.8 ? 'Failed' : 'Success',
+                duration: `${randomTime(5, 120)} min`
+            })),
+
+            // Generate failures data
+            failedProcesses: Array.from({ length: 8 }, (_, i) => ({
+                id: `failure-${i + 1}`,
+                step: ['Data Extraction', 'Schema Validation', 'Data Transformation', 'Type Conversion', 'Loading'][Math.floor(Math.random() * 5)],
+                datasource: ['CRM', 'Sales', 'Inventory', 'Marketing', 'Users'][Math.floor(Math.random() * 5)],
+                crashTime: randomDate().toISOString(),
+                errorMessage: [
+                    'Schema validation failed: Missing required column "customer_id"',
+                    'Connection timeout while accessing data source',
+                    'Data type mismatch: Expected numeric value, got string',
+                    'Memory allocation error during transformation',
+                    'Foreign key constraint violation while loading data'
+                ][Math.floor(Math.random() * 5)]
+            })),
+
+            // Performance metrics
+            performanceMetrics: {
+                avgThroughput: `${(Math.random() * 100 + 50).toFixed(2)} MB/s`,
+                avgLatency: `${(Math.random() * 200 + 10).toFixed(2)} ms`,
+                errorRate: `${(Math.random() * 5).toFixed(2)}%`,
+                totalDataStored: `${(Math.random() * 1000 + 100).toFixed(2)} GB`,
+                avgPipelineTime: `${randomTime(10, 60)} minutes`
+            },
+
+            // Serving layer stats
+            servingLayers: Array.from({ length: 5 }, (_, i) => ({
+                name: ['Users View', 'Products View', 'Sales Analytics', 'Inventory Status', 'Marketing Metrics'][i],
+                dataStored: `${(Math.random() * 100 + 10).toFixed(2)} GB`,
+                lastRefresh: randomDate().toISOString(),
+                avgRefreshTime: `${randomTime(3, 30)} minutes`,
+                queryCount: Math.floor(Math.random() * 10000),
+                refreshFrequency: ['Hourly', 'Daily', 'Weekly', '6 Hours', 'Bi-daily'][Math.floor(Math.random() * 5)]
+            }))
+        };
+    };
+
+    // Create a more realistic ETL pipeline with multiple data sources
+    const createEtlPipeline = () => {
+        const nodes = [];
+        const edges = [];
+
+        // Data source layer (extraction)
+        const dataSources = [
+            {
+                id: 'src1', name: 'CRM Data', type: 'source', x: 100, y: 80, width: 60, height: 60,
+                details: 'Raw customer data',
+                schema: [
+                    { name: 'customer_id', type: 'string' },
+                    { name: 'name', type: 'string' },
+                    { name: 'email', type: 'string' },
+                    { name: 'signup_date', type: 'date' },
+                    { name: 'is_active', type: 'boolean' }
+                ],
+                code: 'SELECT * FROM crm.customers WHERE created_at > :last_extract_date'
+            },
+            {
+                id: 'src2', name: 'Sales Data', type: 'source', x: 250, y: 80, width: 60, height: 60,
+                details: 'Transaction records',
+                schema: [
+                    { name: 'transaction_id', type: 'string' },
+                    { name: 'customer_id', type: 'string' },
+                    { name: 'amount', type: 'float' },
+                    { name: 'date', type: 'date' },
+                    { name: 'product_id', type: 'string' }
+                ],
+                code: 'SELECT * FROM sales.transactions WHERE date > :last_extract_date'
+            },
+            {
+                id: 'src3', name: 'Inventory', type: 'source', x: 400, y: 80, width: 60, height: 60,
+                details: 'Product inventory',
+                schema: [
+                    { name: 'product_id', type: 'string' },
+                    { name: 'name', type: 'string' },
+                    { name: 'category', type: 'string' },
+                    { name: 'stock_level', type: 'integer' },
+                    { name: 'price', type: 'float' }
+                ],
+                code: 'SELECT * FROM inventory.products'
+            },
+            {
+                id: 'src4', name: 'Marketing', type: 'source', x: 550, y: 80, width: 60, height: 60,
+                details: 'Campaign data',
+                schema: [
+                    { name: 'campaign_id', type: 'string' },
+                    { name: 'name', type: 'string' },
+                    { name: 'start_date', type: 'date' },
+                    { name: 'end_date', type: 'date' },
+                    { name: 'budget', type: 'float' }
+                ],
+                code: 'SELECT * FROM marketing.campaigns WHERE end_date > CURRENT_DATE - 90'
+            }
+        ];
+
+        nodes.push(...dataSources);
+
+        // Schema validation nodes (must follow each data source)
+        dataSources.forEach((source, i) => {
+            const schemaNode = {
+                id: `schema${i + 1}`,
+                name: 'Schema Validation',
+                type: 'extraction',
+                x: source.x,
+                y: source.y + 110,
+                width: 50,
+                height: 50,
+                details: `Validate ${source.name} schema`,
+                parentId: source.id,
+                schema: source.schema,
+                code: `-- Schema validation for ${source.name}
+VALIDATE TABLE structure (
+    ${source.schema.map(col => `${col.name} ${col.type}`).join(',\n    ')}
+)`
+            };
+
+            nodes.push(schemaNode);
+            edges.push({ from: source.id, to: schemaNode.id });
+        });
+
+        // Transformation nodes
+        const transformations = [
+            // CRM data transformations
+            {
+                id: 't1', name: 'Clean CRM', type: 'transformation', x: 100, y: 240, width: 50, height: 50,
+                details: 'Clean customer data',
+                code: `-- Clean CRM data
+SELECT 
+    customer_id,
+    TRIM(name) AS name,
+    LOWER(email) AS email,
+    signup_date,
+    is_active
+FROM crm_raw`,
+                schema: [
+                    { name: 'customer_id', type: 'string' },
+                    { name: 'name', type: 'string' },
+                    { name: 'email', type: 'string' },
+                    { name: 'signup_date', type: 'date' },
+                    { name: 'is_active', type: 'boolean' }
+                ]
+            },
+
+            // Sales data transformations
+            {
+                id: 't2', name: 'Clean Sales', type: 'transformation', x: 250, y: 240, width: 50, height: 50,
+                details: 'Clean sales transactions',
+                code: `-- Clean Sales data
+SELECT 
+    transaction_id,
+    customer_id,
+    ROUND(amount, 2) AS amount,
+    date,
+    product_id
+FROM sales_raw`,
+                schema: [
+                    { name: 'transaction_id', type: 'string' },
+                    { name: 'customer_id', type: 'string' },
+                    { name: 'amount', type: 'float' },
+                    { name: 'date', type: 'date' },
+                    { name: 'product_id', type: 'string' }
+                ]
+            },
+            {
+                id: 't3', name: 'Enrich Sales', type: 'transformation', x: 250, y: 310, width: 50, height: 50,
+                details: 'Add product information to sales',
+                code: `-- Enrich sales with product data
+SELECT 
+    s.transaction_id,
+    s.customer_id,
+    s.amount,
+    s.date,
+    s.product_id,
+    p.name AS product_name,
+    p.category AS product_category
+FROM clean_sales s
+JOIN clean_inventory p ON s.product_id = p.product_id`,
+                schema: [
+                    { name: 'transaction_id', type: 'string' },
+                    { name: 'customer_id', type: 'string' },
+                    { name: 'amount', type: 'float' },
+                    { name: 'date', type: 'date' },
+                    { name: 'product_id', type: 'string' },
+                    { name: 'product_name', type: 'string' },
+                    { name: 'product_category', type: 'string' }
+                ]
+            },
+
+            // Inventory transformations
+            {
+                id: 't4', name: 'Clean Inventory', type: 'transformation', x: 400, y: 240, width: 50, height: 50,
+                details: 'Normalize inventory data',
+                code: `-- Clean inventory data
+SELECT 
+    product_id,
+    TRIM(name) AS name,
+    category,
+    stock_level,
+    price
+FROM inventory_raw
+WHERE stock_level >= 0`,
+                schema: [
+                    { name: 'product_id', type: 'string' },
+                    { name: 'name', type: 'string' },
+                    { name: 'category', type: 'string' },
+                    { name: 'stock_level', type: 'integer' },
+                    { name: 'price', type: 'float' }
+                ]
+            },
+
+            // Marketing transformations
+            {
+                id: 't5', name: 'Clean Marketing', type: 'transformation', x: 550, y: 240, width: 50, height: 50,
+                details: 'Normalize campaign data',
+                code: `-- Clean marketing data
+SELECT 
+    campaign_id,
+    TRIM(name) AS name,
+    start_date,
+    end_date,
+    budget
+FROM marketing_raw
+WHERE start_date IS NOT NULL AND end_date IS NOT NULL`,
+                schema: [
+                    { name: 'campaign_id', type: 'string' },
+                    { name: 'name', type: 'string' },
+                    { name: 'start_date', type: 'date' },
+                    { name: 'end_date', type: 'date' },
+                    { name: 'budget', type: 'float' }
+                ]
+            },
+
+            // Joins and aggregations
+            {
+                id: 't6', name: 'Customer 360', type: 'transformation', x: 330, y: 380, width: 50, height: 50,
+                details: 'Create complete customer view',
+                code: `-- Create 360 view of customers
+SELECT 
+    c.customer_id,
+    c.name,
+    c.email,
+    c.signup_date,
+    c.is_active,
+    COUNT(s.transaction_id) AS total_transactions,
+    SUM(s.amount) AS lifetime_value
+FROM clean_crm c
+LEFT JOIN enriched_sales s ON c.customer_id = s.customer_id
+GROUP BY 
+    c.customer_id, c.name, c.email, c.signup_date, c.is_active`,
+                schema: [
+                    { name: 'customer_id', type: 'string' },
+                    { name: 'name', type: 'string' },
+                    { name: 'email', type: 'string' },
+                    { name: 'signup_date', type: 'date' },
+                    { name: 'is_active', type: 'boolean' },
+                    { name: 'total_transactions', type: 'integer' },
+                    { name: 'lifetime_value', type: 'float' }
+                ]
+            }
+        ];
+
+        nodes.push(...transformations);
+
+        // Connect schema validation nodes to transformations
+        edges.push(
+            { from: 'schema1', to: 't1' }, // CRM schema to CRM transformation
+            { from: 'schema2', to: 't2' }, // Sales schema to Sales transformation
+            { from: 'schema3', to: 't4' }, // Inventory schema to Inventory transformation
+            { from: 'schema4', to: 't5' }  // Marketing schema to Marketing transformation
+        );
+
+        // Connect transformations in sequence
+        edges.push(
+            { from: 't2', to: 't3' }, // Clean Sales to Enrich Sales
+            { from: 't1', to: 't6' }, // Clean CRM to Customer 360
+            { from: 't3', to: 't6' }, // Enrich Sales to Customer 360
+            { from: 't4', to: 't3' }  // Clean Inventory to Enrich Sales
+        );
+
+        // Load nodes - final output tables
+        const loadNodes = [
+            {
+                id: 'l1', name: 'Customer View', type: 'load', x: 180, y: 500, width: 70, height: 60,
+                details: 'Customer analytics view',
+                code: `-- Load Customer View
+INSERT INTO prod.customer_view
+SELECT * FROM customer_360_view`,
+                schema: [
+                    { name: 'customer_id', type: 'string' },
+                    { name: 'name', type: 'string' },
+                    { name: 'email', type: 'string' },
+                    { name: 'signup_date', type: 'date' },
+                    { name: 'is_active', type: 'boolean' },
+                    { name: 'total_transactions', type: 'integer' },
+                    { name: 'lifetime_value', type: 'float' }
+                ],
+                stats: {
+                    dataStored: '42.3 GB',
+                    lastRefresh: '2025-03-25T14:30:00Z',
+                    avgRefreshTime: '18 minutes',
+                    queryCount: 4231,
+                    refreshFrequency: 'Daily'
+                }
+            },
+            {
+                id: 'l2', name: 'Sales View', type: 'load', x: 330, y: 500, width: 70, height: 60,
+                details: 'Sales analytics view',
+                code: `-- Load Sales View
+INSERT INTO prod.sales_view
+SELECT * FROM enriched_sales`,
+                schema: [
+                    { name: 'transaction_id', type: 'string' },
+                    { name: 'customer_id', type: 'string' },
+                    { name: 'amount', type: 'float' },
+                    { name: 'date', type: 'date' },
+                    { name: 'product_id', type: 'string' },
+                    { name: 'product_name', type: 'string' },
+                    { name: 'product_category', type: 'string' }
+                ],
+                stats: {
+                    dataStored: '78.6 GB',
+                    lastRefresh: '2025-03-26T08:15:00Z',
+                    avgRefreshTime: '23 minutes',
+                    queryCount: 6842,
+                    refreshFrequency: 'Hourly'
+                }
+            },
+            {
+                id: 'l3', name: 'Inventory View', type: 'load', x: 480, y: 500, width: 70, height: 60,
+                details: 'Product inventory view',
+                code: `-- Load Inventory View
+INSERT INTO prod.inventory_view
+SELECT * FROM clean_inventory`,
+                schema: [
+                    { name: 'product_id', type: 'string' },
+                    { name: 'name', type: 'string' },
+                    { name: 'category', type: 'string' },
+                    { name: 'stock_level', type: 'integer' },
+                    { name: 'price', type: 'float' }
+                ],
+                stats: {
+                    dataStored: '12.8 GB',
+                    lastRefresh: '2025-03-26T06:45:00Z',
+                    avgRefreshTime: '8 minutes',
+                    queryCount: 3517,
+                    refreshFrequency: '6 Hours'
+                }
+            }
+        ];
+
+        nodes.push(...loadNodes);
+
+        // Connect transformations to loads
+        edges.push(
+            { from: 't6', to: 'l1' }, // Customer 360 to Customer View
+            { from: 't3', to: 'l2' }, // Enriched Sales to Sales View
+            { from: 't4', to: 'l3' }  // Clean Inventory to Inventory View
+        );
+
+        // Query nodes (usage examples)
+        const queryNodes = [
+            {
+                id: 'q1', name: 'Active User Report', type: 'query', x: 180, y: 600, width: 60, height: 40,
+                details: 'Active customers report',
+                code: `SELECT * FROM customer_view WHERE is_active = true`
+            },
+            {
+                id: 'q2', name: 'Sales by Product', type: 'query', x: 330, y: 600, width: 60, height: 40,
+                details: 'Product sales analysis',
+                code: `SELECT product_name, SUM(amount) AS total_sales
+FROM sales_view
+GROUP BY product_name
+ORDER BY total_sales DESC` },
+            {
+                id: 'q3', name: 'Low Stock Alert', type: 'query', x: 480, y: 600, width: 60, height: 40,
+                details: 'Products with low inventory',
+                code: `SELECT * FROM inventory_view WHERE stock_level < 10`
+            }
+        ];
+
+        nodes.push(...queryNodes);
+
+        // Connect load to queries
+        edges.push(
+            { from: 'l1', to: 'q1' },
+            { from: 'l2', to: 'q2' },
+            { from: 'l3', to: 'q3' }
+        );
+
+        return { nodes, edges };
+    };
+
+    // Initialize the canvas
     const canvas = document.getElementById('main-etl-timeline');
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
 
-    const pipelineData = {
-        nodes: [
-            // Extraction nodes
-            { id: 'e1', name: 'Data Source', type: 'extraction', x: 100, y: 80, width: 60, height: 60, details: 'Raw data from API' },
-            { id: 'e2', name: 'Filter', type: 'extraction', x: 200, y: 100, width: 50, height: 50, details: 'Initial data filtering' },
-            { id: 'e3', name: 'Validate', type: 'extraction', x: 280, y: 120, width: 50, height: 50, details: 'Schema validation' },
+    // Generate pipeline data
+    const pipelineData = createEtlPipeline();
 
-            // Transformation nodes
-            { id: 't1', name: 'Clean', type: 'transformation', x: 100, y: 240, width: 50, height: 50, details: 'Data cleaning process' },
-            { id: 't2', name: 'Normalize', type: 'transformation', x: 190, y: 230, width: 50, height: 50, details: 'Data normalization' },
-            { id: 't3', name: 'Type Convert', type: 'transformation', x: 280, y: 250, width: 50, height: 50, details: 'Data type conversion' },
-            { id: 't4', name: 'Enrich', type: 'transformation', x: 370, y: 240, width: 50, height: 50, details: 'Data enrichment' },
-
-            // Load nodes
-            { id: 'l1', name: 'Users View', type: 'load', x: 150, y: 400, width: 70, height: 60, details: 'Materialized users view' },
-            { id: 'l2', name: 'Products View', type: 'load', x: 300, y: 390, width: 70, height: 60, details: 'Materialized products view' },
-
-            // Query nodes
-            { id: 'q1', name: 'User Query', type: 'query', x: 130, y: 550, width: 60, height: 40, details: 'SELECT * FROM users' },
-            { id: 'q2', name: 'User Stats', type: 'query', x: 220, y: 560, width: 60, height: 40, details: 'User analytics query' },
-            { id: 'q3', name: 'Product Query', type: 'query', x: 300, y: 550, width: 60, height: 40, details: 'SELECT * FROM products' },
-        ],
-        edges: [
-            // Extraction connections
-            { from: 'e1', to: 'e2' },
-            { from: 'e2', to: 'e3' },
-
-            // Connections to transformation
-            { from: 'e3', to: 't1' },
-            { from: 'e3', to: 't2' },
-
-            // Transformation connections
-            { from: 't1', to: 't3' },
-            { from: 't2', to: 't4' },
-
-            // Connections to load
-            { from: 't3', to: 'l1' },
-            { from: 't4', to: 'l2' },
-
-            // Query connections
-            { from: 'l1', to: 'q1' },
-            { from: 'l1', to: 'q2' },
-            { from: 'l2', to: 'q3' },
-        ]
-    };
+    // Generate fake metrics and stats
+    const fakeData = generateFakeData();
 
     // Pan and zoom state
     let panOffset = { x: 0, y: 0 };
@@ -247,6 +726,13 @@
 
     // Section heights
     const sectionHeight = canvas.height / 4;
+
+    // Node detail container elements
+    const nodeDetailContainer = document.querySelector('.main-editor');
+    const nodeNameElement = document.createElement('h2');
+    const nodeSqlElement = document.createElement('pre');
+    const nodeDataTable = document.createElement('table');
+    nodeDataTable.className = 'data-table';
 
     // Function to draw the ETL pipeline
     function drawPipeline() {
@@ -272,7 +758,7 @@
 
     // Draw section backgrounds and labels
     function drawSections() {
-        const sections = ['Extracted', 'Transformed', 'Loaded', 'Query'];
+        const sections = ['Extraction', 'Transformation', 'Loading', 'Query'];
         const colors = ['rgba(200,230,200,0.3)', 'rgba(200,200,230,0.3)', 'rgba(230,200,200,0.3)', 'rgba(230,230,200,0.3)'];
 
         for (let i = 0; i < sections.length; i++) {
@@ -301,37 +787,42 @@
 
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 1 / scale;
-            
-            // Use squares for data sources, circles for everything else
-            if (node.type === 'extraction' && !node.parentId) { // Top-level extraction nodes
-                // Draw as square
+
+            // Use squares for data sources, circles for process nodes
+            if (node.type === 'source') {
+                // Draw as square for data sources
                 ctx.fillStyle = getNodeColor(node.type);
                 ctx.beginPath();
                 ctx.rect(node.x, node.y, node.width, node.height);
                 ctx.fill();
                 ctx.stroke();
-                
-                // Only show names for data sources
+
+                // Show name for data sources
                 ctx.fillStyle = 'black';
                 ctx.font = `${12 / scale}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.fillText(node.name, node.x + node.width / 2, node.y + node.height / 2);
             } else {
-                // Draw as circle
+                // Draw as circle for process nodes
                 const radius = node.width / 2;
                 ctx.fillStyle = getNodeColor(node.type);
                 ctx.beginPath();
                 ctx.arc(node.x + radius, node.y + radius, radius, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
-                // No text for non-source nodes
+
+                // Show abbreviated name for process nodes
+                ctx.fillStyle = 'black';
+                ctx.font = `${10 / scale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillText(node.id, node.x + radius, node.y + radius);
             }
-            
+
             // Highlight selected node
             if (selectedNode && node.id === selectedNode.id) {
                 ctx.strokeStyle = 'yellow';
                 ctx.lineWidth = 3 / scale;
-                if (node.type === 'extraction' && !node.parentId) {
+                if (node.type === 'source') {
                     ctx.strokeRect(node.x, node.y, node.width, node.height);
                 } else {
                     const radius = node.width / 2;
@@ -355,28 +846,56 @@
             ctx.strokeStyle = 'rgba(100,100,100,0.7)';
             ctx.lineWidth = 2 / scale;
 
+            // Calculate start and end points
+            let startX, startY, endX, endY;
+
+            if (fromNode.type === 'source') {
+                startX = fromNode.x + fromNode.width / 2;
+                startY = fromNode.y + fromNode.height;
+            } else {
+                const radius = fromNode.width / 2;
+                startX = fromNode.x + radius;
+                startY = fromNode.y + radius;
+
+                // Adjust based on direction to next node
+                const angle = Math.atan2(toNode.y - fromNode.y, toNode.x - fromNode.x);
+                startX += Math.cos(angle) * radius;
+                startY += Math.sin(angle) * radius;
+            }
+
+            if (toNode.type === 'source') {
+                endX = toNode.x + toNode.width / 2;
+                endY = toNode.y;
+            } else {
+                const radius = toNode.width / 2;
+                endX = toNode.x + radius;
+                endY = toNode.y + radius;
+
+                // Adjust based on direction from previous node
+                const angle = Math.atan2(toNode.y - fromNode.y, toNode.x - fromNode.x);
+                endX -= Math.cos(angle) * radius;
+                endY -= Math.sin(angle) * radius;
+            }
+
             // Draw the line
             ctx.beginPath();
-            ctx.moveTo(fromNode.x + fromNode.width / 2, fromNode.y + fromNode.height);
-            ctx.lineTo(toNode.x + toNode.width / 2, toNode.y);
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
             ctx.stroke();
 
             // Draw arrow
             const arrowSize = 5 / scale;
-            const angle = Math.atan2(
-                toNode.y - (fromNode.y + fromNode.height),
-                toNode.x + toNode.width / 2 - (fromNode.x + fromNode.width / 2)
-            );
+            const angle = Math.atan2(endY - startY, endX - startX);
 
             ctx.beginPath();
-            ctx.moveTo(toNode.x + toNode.width / 2, toNode.y);
+            ctx.moveTo(endX, endY);
             ctx.lineTo(
-                toNode.x + toNode.width / 2 - arrowSize * Math.cos(angle - Math.PI / 6),
-                toNode.y - arrowSize * Math.sin(angle - Math.PI / 6)
+                endX - arrowSize * Math.cos(angle - Math.PI / 6),
+                endY - arrowSize * Math.sin(angle - Math.PI / 6)
             );
             ctx.lineTo(
-                toNode.x + toNode.width / 2 - arrowSize * Math.cos(angle + Math.PI / 6),
-                toNode.y - arrowSize * Math.sin(angle + Math.PI / 6)
+                endX - arrowSize * Math.cos(angle + Math.PI / 6),
+                endY - arrowSize * Math.sin(angle + Math.PI / 6)
             );
             ctx.closePath();
             ctx.fill();
@@ -386,7 +905,8 @@
     // Get node color based on type
     function getNodeColor(type) {
         switch (type) {
-            case 'extraction': return 'rgba(100,200,100,0.8)';
+            case 'source': return 'rgba(80,180,80,0.8)';
+            case 'extraction': return 'rgba(120,200,120,0.8)';
             case 'transformation': return 'rgba(100,100,200,0.8)';
             case 'load': return 'rgba(200,100,100,0.8)';
             case 'query': return 'rgba(200,200,100,0.8)';
@@ -406,13 +926,641 @@
             // Skip query nodes if toggle is off
             if (node.type === 'query' && !showQueries) continue;
 
-            if (x >= node.x && x <= node.x + node.width &&
-                y >= node.y && y <= node.y + node.height) {
-                return node;
+            if (node.type === 'source') {
+                // Square hit detection for data sources
+                if (x >= node.x && x <= node.x + node.width &&
+                    y >= node.y && y <= node.y + node.height) {
+                    return node;
+                }
+            } else {
+                // Circle hit detection for process nodes
+                const radius = node.width / 2;
+                const centerX = node.x + radius;
+                const centerY = node.y + radius;
+                const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+
+                if (distance <= radius) {
+                    return node;
+                }
             }
         }
         return null;
     }
+
+    // Render node details when a node is clicked
+    function renderNodeDetails(node) {
+        // Show the node details container
+        const mainTimeline = document.querySelector('.main-timeline');
+        const mainEditor = document.querySelector('.main-editor');
+
+        mainTimeline.style.display = 'none';
+        mainEditor.style.display = 'block';
+
+        // Clear previous content
+        mainEditor.innerHTML = '';
+
+        // Create header with back button
+        const header = document.createElement('div');
+        header.className = 'editor-header';
+
+        const backButton = document.createElement('button');
+        backButton.innerHTML = '&larr; Back to Timeline';
+        backButton.className = 'btn btn-secondary';
+        backButton.onclick = () => {
+            mainEditor.style.display = 'none';
+            mainTimeline.style.display = 'block';
+        };
+
+        const title = document.createElement('h2');
+        title.textContent = `${node.name} (${node.id})`;
+
+        header.appendChild(backButton);
+        header.appendChild(title);
+        mainEditor.appendChild(header);
+
+        // If it's a node with SQL, show the code section
+        if (node.code) {
+            const codeSection = document.createElement('div');
+            codeSection.className = 'code-section';
+
+            const codeTitle = document.createElement('h3');
+            codeTitle.textContent = 'SQL Code';
+
+            const codeBlock = document.createElement('pre');
+            codeBlock.className = 'sql-code';
+            codeBlock.textContent = node.code;
+
+            codeSection.appendChild(codeTitle);
+            codeSection.appendChild(codeBlock);
+            mainEditor.appendChild(codeSection);
+        }
+
+        // If node has schema, show data table
+        if (node.schema) {
+            const dataSection = document.createElement('div');
+            dataSection.className = 'data-section';
+
+            const dataTitle = document.createElement('h3');
+            dataTitle.textContent = 'Data Preview';
+
+            const table = document.createElement('table');
+            table.className = 'data-table';
+
+            // Create header row
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+
+            node.schema.forEach(column => {
+                const th = document.createElement('th');
+                th.innerHTML = `${column.name}<br><span class="column-type">${column.type}</span>`;
+                headerRow.appendChild(th);
+            });
+
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // Create data rows (generate fake data based on schema)
+            const tbody = document.createElement('tbody');
+            const rowCount = 10;
+
+            // Generate random data based on column types
+            const generateValue = (type) => {
+                switch (type) {
+                    case 'string':
+                        return `sample-${Math.random().toString(36).substring(2, 8)}`;
+                    case 'integer':
+                        return Math.floor(Math.random() * 1000);
+                    case 'float':
+                        return +(Math.random() * 100).toFixed(2);
+                    case 'boolean':
+                        return Math.random() > 0.5 ? 'true' : 'false';
+                    case 'date':
+                        const date = new Date();
+                        date.setDate(date.getDate() - Math.floor(Math.random() * 365));
+                        return date.toISOString().split('T')[0];
+                    default:
+                        return 'N/A';
+                }
+            };
+
+            for (let i = 0; i < rowCount; i++) {
+                const dataRow = document.createElement('tr');
+
+                node.schema.forEach(column => {
+                    const td = document.createElement('td');
+                    td.textContent = generateValue(column.type);
+                    dataRow.appendChild(td);
+                });
+
+                tbody.appendChild(dataRow);
+            }
+
+            table.appendChild(tbody);
+            dataSection.appendChild(dataTitle);
+            dataSection.appendChild(table);
+            mainEditor.appendChild(dataSection);
+        }
+    }
+
+    // Update sidebar with node configuration
+    function updateSidebar(node) {
+        const sidebar = document.querySelector('.sidebar');
+        const sideHistory = document.getElementById('history');
+
+        sidebar.style.display = 'block';
+
+        // Generate configuration info for sidebar
+        let configInfo = `# ${node.name} (${node.id})\n\n`;
+        configInfo += `**Type:** ${node.type}\n\n`;
+        configInfo += `**Details:** ${node.details}\n\n`;
+
+        if (node.type === 'load' && node.stats) {
+            configInfo += `## Statistics\n\n`;
+            configInfo += `- Data Stored: ${node.stats.dataStored}\n`;
+            configInfo += `- Last Refresh: ${new Date(node.stats.lastRefresh).toLocaleString()}\n`;
+            configInfo += `- Avg Refresh Time: ${node.stats.avgRefreshTime}\n`;
+            configInfo += `- Query Count: ${node.stats.queryCount.toLocaleString()}\n`;
+            configInfo += `- Refresh Frequency: ${node.stats.refreshFrequency}\n\n`;
+        }
+
+        if (node.schema) {
+            configInfo += `## Schema\n\n`;
+            node.schema.forEach(col => {
+                configInfo += `- ${col.name} (${col.type})\n`;
+            });
+        }
+
+        sideHistory.value = configInfo;
+    }
+
+    // Populate the Refresh History section
+    function populateRefreshes() {
+        const refreshesTab = document.querySelector('.tab-content[data-tab="1"]');
+
+        // Clear previous content
+        refreshesTab.innerHTML = '';
+
+        // Create all refreshes table
+        const allRefreshesSection = document.createElement('div');
+        allRefreshesSection.innerHTML = '<h3>All ETL Refreshes</h3>';
+
+        const allRefreshesTable = document.createElement('table');
+        allRefreshesTable.className = 'data-table';
+        allRefreshesTable.innerHTML = `
+        <thead>
+            <tr>
+                <th>Data Source</th>
+                <th>Refresh Time</th>
+                <th>Type</th>
+                <th>Duration</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${fakeData.refreshHistory.map(refresh => `
+                <tr class="${refresh.status === 'Failed' ? 'failed-row' : ''}">
+                    <td>${refresh.datasource}</td>
+                    <td>${new Date(refresh.refreshTime).toLocaleString()}</td>
+                    <td>${refresh.refreshType}</td>
+                    <td>${refresh.duration}</td>
+                    <td class="status-${refresh.status.toLowerCase()}">${refresh.status}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    `;
+
+        allRefreshesSection.appendChild(allRefreshesTable);
+        refreshesTab.appendChild(allRefreshesSection);
+
+        // Create failed processes table
+        const failedSection = document.createElement('div');
+        failedSection.innerHTML = '<h3>Failed ETL Processes</h3>';
+
+        const failedTable = document.createElement('table');
+        failedTable.className = 'data-table';
+        failedTable.innerHTML = `
+        <thead>
+            <tr>
+                <th>Data Source</th>
+                <th>Failed Step</th>
+                <th>Time</th>
+                <th>Error Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${fakeData.failedProcesses.map(failure => `
+                <tr>
+                    <td>${failure.datasource}</td>
+                    <td>${failure.step}</td>
+                    <td>${new Date(failure.crashTime).toLocaleString()}</td>
+                    <td class="error-message">${failure.errorMessage}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    `;
+
+        failedSection.appendChild(failedTable);
+        refreshesTab.appendChild(failedSection);
+    }
+
+    // Function to convert metric cards to KPI-style cards
+    function updatePerformanceView() {
+        const performanceTab = document.querySelector('.tab-content[data-tab="2"]');
+        
+        // Clear previous content
+        performanceTab.innerHTML = '';
+        
+        // Create metric cards with KPI styling
+        const metrics = fakeData.performanceMetrics;
+        const metricsSection = document.createElement('div');
+        metricsSection.className = 'kpi-dashboard';
+        
+        metricsSection.innerHTML = `
+            <div class="kpi-card primary">
+                <div class="kpi-title">
+                    <i class="fa fa-tachometer-alt"></i> Avg Throughput
+                </div>
+                <div class="kpi-value">${metrics.avgThroughput}</div>
+            </div>
+            
+            <div class="kpi-card info">
+                <div class="kpi-title">
+                    <i class="fa fa-clock"></i> Avg Latency
+                </div>
+                <div class="kpi-value">${metrics.avgLatency}</div>
+            </div>
+            
+            <div class="kpi-card danger">
+                <div class="kpi-title">
+                    <i class="fa fa-exclamation-triangle"></i> Error Rate
+                </div>
+                <div class="kpi-value">${metrics.errorRate}</div>
+            </div>
+            
+            <div class="kpi-card success">
+                <div class="kpi-title">
+                    <i class="fa fa-database"></i> Total Data Stored
+                </div>
+                <div class="kpi-value">${metrics.totalDataStored}</div>
+            </div>
+            
+            <div class="kpi-card warning">
+                <div class="kpi-title">
+                    <i class="fa fa-hourglass-half"></i> Avg Pipeline Time
+                </div>
+                <div class="kpi-value">${metrics.avgPipelineTime}</div>
+            </div>
+            
+            <div class="kpi-card secondary">
+                <div class="kpi-title">
+                    <i class="fa fa-chart-line"></i> Daily Executions
+                </div>
+                <div class="kpi-value">342</div>
+            </div>
+        `;
+        
+        performanceTab.appendChild(metricsSection);
+        
+        // Create serving layer table
+        const servingSection = document.createElement('div');
+        servingSection.innerHTML = '<h3>Serving Layer Statistics</h3>';
+        
+        const servingTable = document.createElement('table');
+        servingTable.className = 'data-table';
+        servingTable.innerHTML = `
+            <thead>
+                <tr>
+                    <th>View Name</th>
+                    <th>Data Stored</th>
+                    <th>Last Refresh</th>
+                    <th>Avg Refresh Time</th>
+                    <th>Query Count</th>
+                    <th>Refresh Frequency</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${fakeData.servingLayers.map(layer => `
+                    <tr>
+                        <td>${layer.name}</td>
+                        <td>${layer.dataStored}</td>
+                        <td>${new Date(layer.lastRefresh).toLocaleString()}</td>
+                        <td>${layer.avgRefreshTime}</td>
+                        <td>${layer.queryCount.toLocaleString()}</td>
+                        <td>${layer.refreshFrequency}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        `;
+        
+        servingSection.appendChild(servingTable);
+        performanceTab.appendChild(servingSection);
+    }
+
+    // Add KPI card styles from testData.html
+    document.head.insertAdjacentHTML('beforeend', `
+    <style>
+        /* KPI Dashboard Styles */
+        .kpi-dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .kpi-card {
+            background-color: var(--container-bg, #f8f9fa);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+        
+        .kpi-card.primary::before { background-color: #4285F4; }
+        .kpi-card.success::before { background-color: #34A853; }
+        .kpi-card.warning::before { background-color: #FBBC05; }
+        .kpi-card.danger::before { background-color: #EA4335; }
+        .kpi-card.info::before { background-color: #5B8AF5; }
+        .kpi-card.secondary::before { background-color: #9C27B0; }
+        
+        .kpi-title {
+            font-size: 0.95rem;
+            color: var(--text-color-secondary, #666);
+            margin-bottom: 8px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        
+        .kpi-title i {
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+        
+        .kpi-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: var(--text-color, #333);
+            margin-bottom: 5px;
+        }
+        
+        /* Enhanced node details */
+        .node-info-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+    `);
+
+    // Fix sidebar display
+    function fixSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        // Make sure sidebar is properly positioned
+        sidebar.style.width = '300px';
+        sidebar.style.display = 'block';
+        sidebar.style.height = 'calc(var(--page-height))';
+    }
+
+    // Enhanced node detail rendering with KPI cards
+    function enhancedNodeDetails(node) {
+        // Show the node details container
+        const mainTimeline = document.querySelector('.main-timeline');
+        const mainEditor = document.querySelector('.main-editor');
+        
+        mainTimeline.style.display = 'none';
+        mainEditor.style.display = 'block';
+        
+        // Clear previous content
+        mainEditor.innerHTML = '';
+        
+        // Create header with back button
+        const header = document.createElement('div');
+        header.className = 'editor-header';
+        
+        const backButton = document.createElement('button');
+        backButton.innerHTML = '&larr; Back to Timeline';
+        backButton.className = 'btn btn-secondary';
+        backButton.onclick = () => {
+            mainEditor.style.display = 'none';
+            mainTimeline.style.display = 'block';
+        };
+        
+        const title = document.createElement('h2');
+        title.textContent = `${node.name} (${node.id})`;
+        
+        header.appendChild(backButton);
+        header.appendChild(title);
+        mainEditor.appendChild(header);
+        
+        // Node info with KPI cards
+        const nodeInfoSection = document.createElement('div');
+        nodeInfoSection.className = 'node-info-cards';
+        
+        // Add type and details cards
+        nodeInfoSection.innerHTML = `
+            <div class="kpi-card ${getCardStyleForNodeType(node.type)}">
+                <div class="kpi-title">
+                    <i class="fa ${getIconForNodeType(node.type)}"></i> Node Type
+                </div>
+                <div class="kpi-value">${capitalizeFirstLetter(node.type)}</div>
+            </div>
+            
+            <div class="kpi-card info">
+                <div class="kpi-title">
+                    <i class="fa fa-info-circle"></i> Details
+                </div>
+                <div class="kpi-value" style="font-size: 1.2rem;">${node.details}</div>
+            </div>
+        `;
+        
+        mainEditor.appendChild(nodeInfoSection);
+        
+        // If it's a node with SQL, show the code section
+        if (node.code) {
+            const codeSection = document.createElement('div');
+            codeSection.className = 'code-section';
+            
+            const codeTitle = document.createElement('h3');
+            codeTitle.textContent = 'SQL Code';
+            
+            const codeBlock = document.createElement('pre');
+            codeBlock.className = 'sql-code';
+            codeBlock.textContent = node.code;
+            
+            codeSection.appendChild(codeTitle);
+            codeSection.appendChild(codeBlock);
+            mainEditor.appendChild(codeSection);
+        }
+        
+        // If node has schema, show data table
+        if (node.schema) {
+            const dataSection = document.createElement('div');
+            dataSection.className = 'data-section';
+            
+            const dataTitle = document.createElement('h3');
+            dataTitle.textContent = 'Data Preview';
+            
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            
+            // Create header row
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            
+            node.schema.forEach(column => {
+                const th = document.createElement('th');
+                th.innerHTML = `${column.name}<br><span class="column-type">${column.type}</span>`;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            // Create data rows with fake data based on schema
+            const tbody = document.createElement('tbody');
+            const rowCount = 10;
+            
+            // Generate random data based on column types
+            const generateValue = (type) => {
+                switch(type) {
+                    case 'string':
+                        return `sample-${Math.random().toString(36).substring(2, 8)}`;
+                    case 'integer':
+                        return Math.floor(Math.random() * 1000);
+                    case 'float':
+                        return +(Math.random() * 100).toFixed(2);
+                    case 'boolean':
+                        return Math.random() > 0.5 ? 'true' : 'false';
+                    case 'date':
+                        const date = new Date();
+                        date.setDate(date.getDate() - Math.floor(Math.random() * 365));
+                        return date.toISOString().split('T')[0];
+                    default:
+                        return 'N/A';
+                }
+            };
+            
+            for (let i = 0; i < rowCount; i++) {
+                const dataRow = document.createElement('tr');
+                
+                node.schema.forEach(column => {
+                    const td = document.createElement('td');
+                    td.textContent = generateValue(column.type);
+                    dataRow.appendChild(td);
+                });
+                
+                tbody.appendChild(dataRow);
+            }
+            
+            table.appendChild(tbody);
+            dataSection.appendChild(dataTitle);
+            dataSection.appendChild(table);
+            mainEditor.appendChild(dataSection);
+        }
+        
+        // Show sidebar with node details
+        enhancedSidebar(node);
+    }
+
+    // Enhanced sidebar with node configuration
+    function enhancedSidebar(node) {
+        const sidebar = document.querySelector('.sidebar');
+        const sideHistory = document.getElementById('history');
+        
+        // Make sidebar visible
+        fixSidebar();
+        
+        // Generate configuration info for sidebar
+        let configInfo = `# ${node.name} (${node.id})\n\n`;
+        configInfo += `**Type:** ${node.type}\n\n`;
+        configInfo += `**Details:** ${node.details}\n\n`;
+        
+        if (node.type === 'load' && node.stats) {
+            configInfo += `## Statistics\n\n`;
+            configInfo += `- Data Stored: ${node.stats.dataStored}\n`;
+            configInfo += `- Last Refresh: ${new Date(node.stats.lastRefresh).toLocaleString()}\n`;
+            configInfo += `- Avg Refresh Time: ${node.stats.avgRefreshTime}\n`;
+            configInfo += `- Query Count: ${node.stats.queryCount.toLocaleString()}\n`;
+            configInfo += `- Refresh Frequency: ${node.stats.refreshFrequency}\n\n`;
+        }
+        
+        if (node.schema) {
+            configInfo += `## Schema\n\n`;
+            node.schema.forEach(col => {
+                configInfo += `- ${col.name} (${col.type})\n`;
+            });
+        }
+        
+        sideHistory.value = configInfo;
+    }
+
+    // Helper functions for node styling
+    function getCardStyleForNodeType(type) {
+        switch(type) {
+            case 'source': return 'success';
+            case 'extraction': return 'primary';
+            case 'transformation': return 'warning';
+            case 'load': return 'danger';
+            case 'query': return 'secondary';
+            default: return 'info';
+        }
+    }
+
+    function getIconForNodeType(type) {
+        switch(type) {
+            case 'source': return 'fa-database';
+            case 'extraction': return 'fa-filter';
+            case 'transformation': return 'fa-cogs';
+            case 'load': return 'fa-upload';
+            case 'query': return 'fa-search';
+            default: return 'fa-cube';
+        }
+    }
+
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    // Replace the existing functions with the enhanced versions
+    const originalPopulatePerformance = populatePerformance;
+    populatePerformance = updatePerformanceView;
+
+    const originalRenderNodeDetails = renderNodeDetails;
+    renderNodeDetails = enhancedNodeDetails;
+
+    const originalUpdateSidebar = updateSidebar;
+    updateSidebar = enhancedSidebar;
+
+    // Initialize the ETL page on load
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize tab content with enhanced styles
+        populateRefreshes();
+        populatePerformance();
+        
+        // Set first tab as active
+        document.querySelector('.tab-navigation button[data-tab="1"]').click();
+        
+        // Initial draw
+        drawPipeline();
+    });
 
     // Mouse move handler
     canvas.addEventListener('mousemove', (e) => {
@@ -463,12 +1611,10 @@
 
         if (node) {
             selectedNode = node;
-            if (node.type === 'query') {
-                console.log(`Query selected: ${node.name}`);
-            } else {
-                document.querySelector('.sidebar').style.display = 'block';
-                document.querySelector('main').style.margin = '0 40px';
-            }
+            // Show node details in the main view
+            renderNodeDetails(node);
+            // Update sidebar with node configuration
+            updateSidebar(node);
         } else {
             // Start panning
             isDragging = true;
@@ -518,13 +1664,29 @@
         drawPipeline();
     });
 
-    // Initial draw
-    drawPipeline();
-
-    // Handle window resize
-    window.addEventListener('resize', () => {
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-        drawPipeline();
-    });
-</script>
+    const style = document.createElement('style');
+    style.textContent = `
+    .editor-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .editor-header h2 {
+        margin-left: 20px;
+    }
+    
+    .code-section {
+        margin-bottom: 20px;
+    }
+    
+    .sql-code {
+        background-color: #f5f5f5;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        font-family: monospace;
+    }
+    
+    .data-table {
+        width: 100%;
