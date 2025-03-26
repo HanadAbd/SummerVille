@@ -12,6 +12,9 @@ import (
 )
 
 func TestConnections(t *testing.T) {
+	if os.Getenv("CI") == "true" {
+		t.Skip("Skipping database tests in CI environment")
+	}
 	manager := runConnectionService(t)
 
 	reg := manager.GetRegistry()
