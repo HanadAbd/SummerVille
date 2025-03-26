@@ -31,7 +31,7 @@ export class Graph {
     graphData: GraphData | null;
     nodePositions: Map<string, {x: number, y: number}>;
     nodeElements: Map<string, {width: number, height: number}>;
-    eventColors: {[key: string]: string};
+    nodeColors: {[key: string]: string};
     hoverNode: Node | null;
     legendVisible: boolean = true;
 
@@ -66,7 +66,7 @@ export class Graph {
         this.graphData = null;
         this.nodePositions = new Map();
         this.nodeElements = new Map();
-        this.eventColors = {
+        this.nodeColors = {
             'Idle': '#45B7D1',
             'Processing': '#34A853',
             'Processed': '#FBBC05',
@@ -160,7 +160,6 @@ export class Graph {
                 const innerWidth = nodeWidth - containerPadding * 2;
                 const innerHeight = nodeHeight - containerPadding * 2;
                 
-                // Position in a grid inside the parent
                 const innerCols = Math.ceil(Math.sqrt(containedNodes.length));
                 const innerRows = Math.ceil(containedNodes.length / innerCols);
                 const innerCellWidth = innerWidth / innerCols;
@@ -191,7 +190,7 @@ export class Graph {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         if (!this.graphData) {
-            const node = { x: 200, y: 300, radius: 22, color: this.eventColors['Idle'] };
+            const node = { x: 200, y: 300, radius: 22, color: this.nodeColors['Idle'] };
             this.ctx.beginPath();
             this.ctx.arc(node.x + this.offsetX, node.y + this.offsetY, node.radius * this.scale, 0, Math.PI * 2);
             this.ctx.fillStyle = node.color;
@@ -202,20 +201,17 @@ export class Graph {
             return;
         }
 
-        // Apply transformations for nodes and edges
         this.ctx.save();
         this.ctx.translate(this.offsetX, this.offsetY);
         this.ctx.scale(this.scale, this.scale);
         
-        // Draw edges first (so they appear under nodes)
-        this.drawEdges();
         
-        // Draw nodes
         this.drawNodes();
+
+        this.drawEdges();
 
         this.ctx.restore();
 
-        // Draw legend with fixed position (no transform)
         if (this.legendVisible) {
             this.drawLegend();
         }
@@ -226,7 +222,6 @@ export class Graph {
         
         const nodes = this.graphData.nodes;
         
-        // First, draw container nodes (those that contain other nodes)
         for (const [id, node] of Object.entries(nodes)) {
             if (!node.nodesWithin || node.nodesWithin.length === 0) continue;
             
@@ -235,12 +230,10 @@ export class Graph {
             
             if (!pos || !size) continue;
             
-            // Draw container as a rectangle
-            this.ctx.fillStyle = this.eventColors[node.event] || '#999999';
+            this.ctx.fillStyle = this.nodeColors[node.event] || '#999999';
             this.ctx.strokeStyle = '#35354F';
             this.ctx.lineWidth = 2;
             
-            // Draw fill first
             this.roundRect(
                 pos.x - size.width / 2,
                 pos.y - size.height / 2,
@@ -251,7 +244,6 @@ export class Graph {
                 false
             );
             
-            // Then draw stroke (border) separately
             this.roundRect(
                 pos.x - size.width / 2,
                 pos.y - size.height / 2,
@@ -262,27 +254,24 @@ export class Graph {
                 true
             );
             
-            // Draw container label
             this.ctx.fillStyle = '#333333';
             this.ctx.font = '14px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.fillText(id, pos.x, pos.y - size.height / 2 + 20);
         }
         
-        // Then, draw regular nodes
         for (const [id, node] of Object.entries(nodes)) {
-            if (node.nodesWithin && node.nodesWithin.length > 0) continue; // Skip containers, already drawn
+            if (node.nodesWithin && node.nodesWithin.length > 0) continue; 
             
             const pos = this.nodePositions.get(id);
             const size = this.nodeElements.get(id);
             
             if (!pos || !size) continue;
             
-            this.ctx.fillStyle = this.eventColors[node.event] || '#999999';
+            this.ctx.fillStyle = this.nodeColors[node.event] || '#999999';
             this.ctx.strokeStyle = '#35354F';
             this.ctx.lineWidth = node.id === this.hoverNode?.id ? 4 : 2;
             
-            // Get queue information
             const queueContents = this.nodeQueues.get(id) || [];
             const hasItems = queueContents.length > 0;
             
@@ -378,8 +367,7 @@ export class Graph {
         
         const nodes = this.graphData.nodes;
         
-        // Draw connections between nodes with reduced opacity
-        this.ctx.globalAlpha = 0.5;
+        this.ctx.globalAlpha = 0.3;
         
         for (const [sourceId, sourceNode] of Object.entries(nodes)) {
             if (!sourceNode.nextNodes || sourceNode.nextNodes.length === 0) continue;
@@ -391,109 +379,88 @@ export class Graph {
                 const targetPos = this.nodePositions.get(targetId);
                 if (!targetPos) continue;
                 
-                // Check if there's any part transitioning on this edge
                 const transitingParts = Array.from(this.partsInTransit.entries())
                     .filter(([_, transit]) => transit.from === sourceId && transit.to === targetId);
                 
                 const isActiveEdge = transitingParts.length > 0;
                 
-                // Calculate direction vector
                 const dx = targetPos.x - sourcePos.x;
                 const dy = targetPos.y - sourcePos.y;
                 const length = Math.sqrt(dx * dx + dy * dy);
                 
                 if (length === 0) continue;
                 
-                // Normalize
                 const nx = dx / length;
                 const ny = dy / length;
                 
-                // Get node sizes
                 const sourceSize = this.nodeElements.get(sourceId);
                 const targetSize = this.nodeElements.get(targetId);
                 
                 if (!sourceSize || !targetSize) continue;
                 
-                // Determine start and end points (on the edge of nodes)
                 let startX, startY, endX, endY;
                 
-                // Check if source is a circle (0 processing time)
                 if (nodes[sourceId].processingTime === 0) {
                     const radius = Math.min(sourceSize.width, sourceSize.height) / 2;
                     startX = sourcePos.x + nx * radius;
                     startY = sourcePos.y + ny * radius;
                 } else {
-                    // For rectangles, find intersection with rectangle border
                     const halfWidth = sourceSize.width / 2;
                     const halfHeight = sourceSize.height / 2;
                     
-                    // Simple approximation - not perfect but works for most cases
                     if (Math.abs(nx) * halfWidth > Math.abs(ny) * halfHeight) {
-                        // Horizontal intersection
                         startX = sourcePos.x + (nx > 0 ? halfWidth : -halfWidth);
                         startY = sourcePos.y + ny * (halfWidth / Math.abs(nx));
                     } else {
-                        // Vertical intersection
                         startX = sourcePos.x + nx * (halfHeight / Math.abs(ny));
                         startY = sourcePos.y + (ny > 0 ? halfHeight : -halfHeight);
                     }
                 }
                 
-                // Check if target is a circle
                 if (nodes[targetId].processingTime === 0) {
                     const radius = Math.min(targetSize.width, targetSize.height) / 2;
                     endX = targetPos.x - nx * radius;
                     endY = targetPos.y - ny * radius;
                 } else {
-                    // For rectangles, find intersection with rectangle border
                     const halfWidth = targetSize.width / 2;
                     const halfHeight = targetSize.height / 2;
                     
                     if (Math.abs(nx) * halfWidth > Math.abs(ny) * halfHeight) {
-                        // Horizontal intersection
                         endX = targetPos.x - (nx > 0 ? halfWidth : -halfWidth);
                         endY = targetPos.y - ny * (halfWidth / Math.abs(nx));
                     } else {
-                        // Vertical intersection
                         endX = targetPos.x - nx * (halfHeight / Math.abs(ny));
                         endY = targetPos.y - (ny > 0 ? halfHeight : -halfHeight);
                     }
                 }
                 
-                // Draw edge with pulse effect if active
                 this.ctx.beginPath();
                 this.ctx.moveTo(startX, startY);
                 this.ctx.lineTo(endX, endY);
                 
                 if (isActiveEdge) {
-                    // Active edge with pulse effect
                     this.ctx.strokeStyle = '#FF5722';
                     this.ctx.lineWidth = 3;
                     
-                    // Create gradient for pulse effect
                     const gradient = this.ctx.createLinearGradient(startX, startY, endX, endY);
                     
-                    // Pulse effect based on most progressed part
                     const mostProgressed = transitingParts.reduce((max, current) => 
                         current[1].progress > max[1].progress ? current : max, transitingParts[0]);
                     
                     const progress = mostProgressed[1].progress;
                     
-                    // Create pulsing gradient
                     gradient.addColorStop(Math.max(0, progress - 0.2), 'rgba(255, 87, 34, 0.1)');
                     gradient.addColorStop(progress, 'rgba(255, 87, 34, 0.8)');
                     gradient.addColorStop(Math.min(1, progress + 0.2), 'rgba(255, 87, 34, 0.1)');
                     
                     this.ctx.strokeStyle = gradient;
                 } else {
-                    // Normal edge
                     this.ctx.strokeStyle = '#666666';
                     this.ctx.lineWidth = 1.5;
                 }
                 
                 this.ctx.stroke();
                 
-                // Draw arrow head at end point
                 const arrowSize = 10;
                 const angle = Math.atan2(targetPos.y - sourcePos.y, targetPos.x - sourcePos.x);
                 
@@ -513,17 +480,14 @@ export class Graph {
             }
         }
         
-        // Draw parts in transit
         for (const [partId, transit] of this.partsInTransit.entries()) {
             const sourcePos = this.nodePositions.get(transit.from);
             const targetPos = this.nodePositions.get(transit.to);
             
             if (sourcePos && targetPos) {
-                // Calculate position along the edge based on progress
                 const x = sourcePos.x + (targetPos.x - sourcePos.x) * transit.progress;
                 const y = sourcePos.y + (targetPos.y - sourcePos.y) * transit.progress;
                 
-                // Draw part indicator with glow effect
                 this.ctx.shadowColor = 'rgba(255, 87, 34, 0.6)';
                 this.ctx.shadowBlur = 10;
                 this.ctx.shadowOffsetX = 0;
@@ -576,18 +540,15 @@ export class Graph {
         const padding = 15;
         const itemHeight = 25;
         const legendWidth = 150;
-        const legendHeight = Object.keys(this.eventColors).length * itemHeight + padding * 2;
+        const legendHeight = Object.keys(this.nodeColors).length * itemHeight + padding * 2;
         
-        // Position legend in bottom left with fixed position
         const x = padding;
         const y = this.canvas.height - legendHeight - padding;
         
-        // Legend background
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         this.ctx.strokeStyle = '#666666';
         this.ctx.lineWidth = 1;
         
-        // Draw rounded rectangle (fixed position)
         this.ctx.beginPath();
         this.ctx.moveTo(x + 5, y);
         this.ctx.lineTo(x + legendWidth - 5, y);
@@ -602,7 +563,6 @@ export class Graph {
         this.ctx.fill();
         this.ctx.stroke();
         
-        // Legend title
         this.ctx.fillStyle = '#333333';
         this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'left';
@@ -615,8 +575,7 @@ export class Graph {
         // Legend items
         let itemY = y + 50;
         
-        for (const [state, color] of Object.entries(this.eventColors)) {
-            // Color box
+        for (const [state, color] of Object.entries(this.nodeColors)) {
             this.ctx.fillStyle = color;
             this.ctx.fillRect(
                 x + padding,
@@ -632,7 +591,6 @@ export class Graph {
                 15
             );
             
-            // State label
             this.ctx.fillStyle = '#333333';
             this.ctx.font = '12px Arial';
             this.ctx.textAlign = 'left';
@@ -811,14 +769,11 @@ export class Graph {
         const mouseY = e.offsetY;
         
         if (e.deltaY < 0) {
-            // Zoom in
             this.scale = Math.min(3, this.scale + zoomFactor);
         } else {
-            // Zoom out
             this.scale = Math.max(0.5, this.scale - zoomFactor);
         }
 
-        // Zoom centered on mouse position
         this.offsetX = mouseX - (mouseX - this.offsetX) * (this.scale / (this.scale + (e.deltaY < 0 ? zoomFactor : -zoomFactor)));
         this.offsetY = mouseY - (mouseY - this.offsetY) * (this.scale / (this.scale + (e.deltaY < 0 ? zoomFactor : -zoomFactor)));
 
@@ -828,7 +783,6 @@ export class Graph {
     processLogMessage(logData: any): void {
         switch(logData.type) {
             case 'partState':
-                // Handle updates to parts
                 this.partStates.set(logData.partId, {
                     nodeId: logData.nodeId,
                     state: logData.state
@@ -836,22 +790,18 @@ export class Graph {
                 break;
                 
             case 'nodeState':
-                // Handle updates to node state (when part ID is empty)
-                // You might store node states in a separate map
                 this.nodeStates.set(logData.nodeId, logData.state);
                 break;
                 
             case 'transition':
-                // Start a new transition animation
                 this.partsInTransit.set(logData.partId, {
                     from: logData.sourceNode,
                     to: logData.targetNode,
-                    progress: 0 // 0 to 1 for animation
+                    progress: 0
                 });
                 break;
                 
             case 'queue':
-                // Store queue information
                 this.nodeQueues.set(logData.nodeId, 
                     new Array(logData.queueSize).fill('item'));
                 break;
@@ -861,48 +811,62 @@ export class Graph {
                 break;
         }
         
-        // Redraw to reflect changes
-        this.renderCanvas();
     }
     
     startAnimationLoop(): void {
-        const animate = () => {
+        let lastDrawTime = 0;
+        const frameRate = 60;
+        const frameInterval = 1000 / frameRate;
+
+        const animate = (timestamp: number) => {
             let needsRedraw = false;
             
+            const currentTransits = new Map();
+            
             for (const [partId, transit] of this.partsInTransit.entries()) {
-                // Speed up/down based on number of active transitions
-                const transitionSpeed = 0.01 + (0.01 / Math.max(1, this.partsInTransit.size));
-                
-                transit.progress += transitionSpeed;
-                
-                if (transit.progress >= 1) {
-                    this.partsInTransit.delete(partId);
-                    
-                    // When transition completes, update part state
-                    this.partStates.set(partId, {
-                        nodeId: transit.to,
-                        state: 'Arrived'
-                    });
-                }
-                
-                needsRedraw = true;
+            if (transit.progress >= 1) {
+                this.partsInTransit.delete(partId);
+                this.partStates.set(partId, {
+                nodeId: transit.to,
+                state: 'Arrived'
+                });
+                continue;
             }
+
+            const transitionSpeed = 0.01 + (0.01 / Math.max(1, this.partsInTransit.size));
+            transit.progress += transitionSpeed;
+            
+            if (transit.progress >= 1) {
+                this.partsInTransit.delete(partId);
+                this.partStates.set(partId, {
+                nodeId: transit.to,
+                state: 'Arrived'
+                });
+            } else {
+                currentTransits.set(partId, transit);
+            }
+            
+            needsRedraw = true;
+            }
+
+            this.partsInTransit = currentTransits;
             
             if (this.graphData) {
-                for (const [id, node] of Object.entries(this.graphData.nodes)) {
-                    if (node.event === 'Processing') {
-                        needsRedraw = true;
-                    }
+            for (const [id, node] of Object.entries(this.graphData.nodes)) {
+                if (node.event === 'Processing') {
+                needsRedraw = true;
                 }
             }
+            }
             
-            if (needsRedraw) {
-                this.renderCanvas();
+            if (needsRedraw && timestamp - lastDrawTime >= frameInterval) {
+            this.renderCanvas();
+            lastDrawTime = timestamp;
             }
             
             requestAnimationFrame(animate);
         };
         
         requestAnimationFrame(animate);
-    }
+        }
 }

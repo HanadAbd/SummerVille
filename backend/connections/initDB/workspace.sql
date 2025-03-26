@@ -31,3 +31,7 @@ CREATE TABLE IF NOT EXISTS prod.workspace_members (
 
 CREATE INDEX idx_workspace_members_user_id ON prod.workspace_members(user_id);
 CREATE INDEX idx_workspace_members_workspace_id ON prod.workspace_members(workspace_id);
+
+
+INSERT INTO prod.workspaces (workspace_name, description) VALUES ('Default Workspace', 'This is the default workspace for all users');
+INSERT INTO prod.users (username, email, default_workspace_id) VALUES ('admin', 'email', 1);

@@ -32,13 +32,10 @@ func (s *SimulatedService) Start(ctx context.Context) error {
 	s.wg.Add(1)
 	s.mutex.Lock()
 
-	// Create a simulation context that won't terminate when the service starts
 	s.simCtx, s.simCancel = context.WithCancel(context.Background())
 
-	// Initialize data sources first
 	s.dataSources = simData.IntialiseConnections(s.registry)
 
-	// Then initialize factory with the data sources
 	s.factory = simData.IntiliaseFactory(s.dataSources)
 
 	s.mutex.Unlock()
@@ -51,10 +48,8 @@ func (s *SimulatedService) Start(ctx context.Context) error {
 	go func() {
 		defer s.wg.Done()
 
-		// Run the simulation with our long-lived context
 		simData.SimulateData(s.dataSources, s.factory, s.simCtx)
 
-		// If we get here, the simulation has stopped
 		<-ctx.Done()
 	}()
 

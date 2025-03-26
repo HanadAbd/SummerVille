@@ -1,28 +1,60 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
-name: Go
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
-
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24.1'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.2'
 
-    - name: Build
-      run: go build -v ./...
+      - name: Install Dependencies
+        run: go mod download
 
-    - name: Test
-      run: go test -v ./...
+      - name: Run Tests
+        run: go test ./...
+
+      - name: Build Docker Image
+        run: |
+          docker build -t myapp:latest .
+
+  deploy:
+    needs: build-and-test
+    environment: prod  
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
+
+      - name: Deploy to DigitalOcean Droplet via SSH
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.DIGITALOCEAN_HOST }}
+          username: ${{ secrets.DIGITALOCEAN_USER }}
+          password: ${{ secrets.DIGITALOCEAN_PASSWORD }}
+          port: 22
+          timeout: 60s
+          script: |
+            mkdir -p /root/myapp
+            cd /root/myapp
+            wget -O docker-compose.yml https://raw.githubusercontent.com/HanadAbd/digitalOcean/main/docker-compose.yml
+            docker-compose pull
+            docker-compose down
+            docker-compose up -d

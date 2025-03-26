@@ -236,12 +236,7 @@
                                     <i class="fa fa-server"></i> Active Nodes
                                 </div>
                                 <div class="kpi-value">247</div>
-                                <div class="kpi-trend positive">
-                                    <i class="fa fa-arrow-up"></i> +5.2% from last week
-                                </div>
-                                <svg class="kpi-chart">
-                                    <polyline class="sparkline" points="0,50 20,48 40,52 60,45 80,53 100,40 120,45 140,38 160,42 180,30"/>
-                                </svg>
+
                             </div>
                             
                             <div class="kpi-card success">
@@ -249,12 +244,8 @@
                                     <i class="fa fa-database"></i> Data Throughput
                                 </div>
                                 <div class="kpi-value">1.8 TB/s</div>
-                                <div class="kpi-trend positive">
-                                    <i class="fa fa-arrow-up"></i> +12.3% from last week
-                                </div>
-                                <svg class="kpi-chart">
+                                
                                     <polyline class="sparkline" points="0,45 20,42 40,39 60,35 80,30 100,25 120,20 140,15 160,12 180,8"/>
-                                </svg>
                             </div>
                             
                             <div class="kpi-card warning">
@@ -262,12 +253,7 @@
                                     <i class="fa fa-exchange-alt"></i> Requests per Second
                                 </div>
                                 <div class="kpi-value">24.5K</div>
-                                <div class="kpi-trend negative">
-                                    <i class="fa fa-arrow-down"></i> -3.1% from last week
-                                </div>
-                                <svg class="kpi-chart">
-                                    <polyline class="sparkline" points="0,25 20,30 40,28 60,35 80,32 100,40 120,38 140,42 160,45 180,40"/>
-                                </svg>
+                                
                             </div>
                             
                             <div class="kpi-card info">
@@ -275,12 +261,7 @@
                                     <i class="fa fa-plug"></i> Data Sources
                                 </div>
                                 <div class="kpi-value">32</div>
-                                <div class="kpi-trend positive">
-                                    <i class="fa fa-arrow-up"></i> +2 new sources
-                                </div>
-                                <svg class="kpi-chart">
-                                    <polyline class="sparkline" points="0,30 20,30 40,30 60,25 80,25 100,25 120,20 140,20 160,20 180,15"/>
-                                </svg>
+                               
                             </div>
                             
                             <div class="kpi-card danger">
@@ -288,12 +269,7 @@
                                     <i class="fa fa-exclamation-triangle"></i> Error Rate
                                 </div>
                                 <div class="kpi-value">0.08%</div>
-                                <div class="kpi-trend neutral">
-                                    <i class="fa fa-minus"></i> No change
-                                </div>
-                                <svg class="kpi-chart">
-                                    <polyline class="sparkline" points="0,40 20,20 40,30 60,15 80,25 100,20 120,30 140,25 160,35 180,30"/>
-                                </svg>
+                                
                             </div>
                             
                             <div class="kpi-card secondary">
@@ -301,48 +277,9 @@
                                     <i class="fa fa-clock"></i> Average Response Time
                                 </div>
                                 <div class="kpi-value">28ms</div>
-                                <div class="kpi-trend positive">
-                                    <i class="fa fa-arrow-down"></i> -5ms improvement
-                                </div>
-                                <svg class="kpi-chart">
-                                    <polyline class="sparkline" points="0,15 20,25 40,20 60,30 80,25 100,35 120,25 140,20 160,15 180,10"/>
-                                </svg>
                             </div>
                         </div>
                         
-                        <div class="system-health">
-                            <div class="health-title">System Health</div>
-                            <div class="health-items">
-                                <div class="health-item">
-                                    <span class="status-indicator status-active"></span>
-                                    <div>
-                                        <div class="health-item-title">CPU Usage</div>
-                                        <div class="health-item-value">42%</div>
-                                    </div>
-                                </div>
-                                <div class="health-item">
-                                    <span class="status-indicator status-active"></span>
-                                    <div>
-                                        <div class="health-item-title">Memory Usage</div>
-                                        <div class="health-item-value">67%</div>
-                                    </div>
-                                </div>
-                                <div class="health-item">
-                                    <span class="status-indicator status-warning"></span>
-                                    <div>
-                                        <div class="health-item-title">Disk Space</div>
-                                        <div class="health-item-value">89%</div>
-                                    </div>
-                                </div>
-                                <div class="health-item">
-                                    <span class="status-indicator status-active"></span>
-                                    <div>
-                                        <div class="health-item-title">Network</div>
-                                        <div class="health-item-value">5.2 Gbps</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                     <div class="tab-content results" data-tab="2">
                         <textarea class="query-textarea" id="logs" placeholder="Logs will be displayed here" readonly></textarea>
@@ -360,8 +297,9 @@
         <!-- Saved Queries Section -->
         <div class ="side-bar-content tab-content" data-tab="1">
             <ul class="side-list" id="savedQueriesList">
+                {{range .Sources}}
                 <li class="side-item">
-                    <span class="side-item-title">Daily Production Summary</span>
+                    <span class="side-item-title">{{.Name}}</span>
                     <div>
                         <button class="side-item-btn">Edit</button>
                     </div>
@@ -370,16 +308,7 @@
                         <p>Type: Regular Query</p>
                     </div>
                 </li>
-                <li class="side-item">
-                    <span class="side-item-title">Worker Performance</span>
-                    <div>
-                        <button class="side-item-btn">Edit</button>
-                    </div>
-                    <div class="side-item-content">
-                        <p>Created: 2023-05-10</p>
-                        <p>Type: Materialized View</p>
-                    </div>
-                </li>
+                {{end}}
             </ul>
         </div>
 

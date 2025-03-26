@@ -123,7 +123,7 @@ func logPartState(partID string, event MachineState, nodeID string) {
 func logPartTransition(partID string, sourceNodeID string, targetNodeID string) {
 	logMessage := fmt.Sprintf("%s;transition;%s;%s\n", partID, sourceNodeID, targetNodeID)
 	logging(logMessage)
-	log.Printf("DEBUG: Transition logged - %s moving from %s to %s", partID, sourceNodeID, targetNodeID)
+	// log.Printf("DEBUG: Transition logged - %s moving from %s to %s", partID, sourceNodeID, targetNodeID)
 }
 
 func logNodeQueue(nodeID string, queueLen int) {
@@ -187,7 +187,7 @@ func addParts(start FactoryNode, rate int, wg *sync.WaitGroup, ctx context.Conte
 
 			select {
 			case start.GetQueue() <- part:
-				log.Printf("Added new part: %s", part.ID)
+				// log.Printf("Added new part: %s", part.ID)
 			case <-time.After(500 * time.Millisecond):
 				log.Printf("Queue full, skipping part: %s", part.ID)
 			}

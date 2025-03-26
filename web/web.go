@@ -93,7 +93,6 @@ func HandleTestPage(templates *template.Template, name, file string, reg *util.R
 	return func(w http.ResponseWriter, r *http.Request) {
 		templates = IntaliseTemplates()
 
-		// Get factory from registry, but handle the case when it's not available
 		factoryObj, ok := reg.Get("simData.factory")
 
 		var allNodes string = "{}"
@@ -107,10 +106,25 @@ func HandleTestPage(templates *template.Template, name, file string, reg *util.R
 			fmt.Printf("Factory not available in registry yet\n")
 		}
 
+		dataSourcesObj, _ := reg.Get("simData.dataSources")
+		dataSources := dataSourcesObj.(map[string]*simData.DataSource)
+
+		webSources := []struct {
+			Name     string
+			Datatype string
+		}{}
+		for _, value := range dataSources {
+			webSources = append(webSources, struct {
+				Name     string
+				Datatype string
+			}{Name: value.Name, Datatype: value.DataType})
+		}
+
 		data := map[string]interface{}{
 			"Title":     name,
 			"AllNodes":  allNodes,
 			"NodeCount": nodeCount,
+			"Sources":   webSources,
 		}
 		templates.ExecuteTemplate(w, html_file, data)
 	}
