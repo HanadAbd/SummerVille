@@ -260,85 +260,54 @@
 <script>
     console.log("ETL Pipeline Visualization Loaded");
 
-    // Utility to generate random data
+    // Utility to generate random data with factory context
     const generateFakeData = () => {
         const randomDate = () => {
             const start = new Date(2024, 0, 1);
             const end = new Date();
             return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
         };
-
+        
         const randomTime = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
-
-        // Generate data records with columns and types
-        const generateDataRecords = (columns, rowCount = 10) => {
-            const records = [];
-            for (let i = 0; i < rowCount; i++) {
-                const record = {};
-                columns.forEach(col => {
-                    switch (col.type) {
-                        case 'string':
-                            record[col.name] = `sample-${Math.random().toString(36).substring(2, 8)}`;
-                            break;
-                        case 'integer':
-                            record[col.name] = Math.floor(Math.random() * 1000);
-                            break;
-                        case 'float':
-                            record[col.name] = +(Math.random() * 100).toFixed(2);
-                            break;
-                        case 'boolean':
-                            record[col.name] = Math.random() > 0.5;
-                            break;
-                        case 'date':
-                            record[col.name] = randomDate().toISOString().split('T')[0];
-                            break;
-                        default:
-                            record[col.name] = `default-${i}`;
-                    }
-                });
-                records.push(record);
-            }
-            return records;
-        };
-
+        
         return {
             // Generate refresh history data
             refreshHistory: Array.from({ length: 20 }, (_, i) => ({
-                id: `refresh-${i + 1}`,
-                datasource: ['CRM', 'Sales', 'Inventory', 'Marketing', 'Users'][Math.floor(Math.random() * 5)],
+                id: `refresh-${i+1}`,
+                datasource: ['Assembly Line', 'Quality Control', 'Materials', 'Machinery', 'Production'][Math.floor(Math.random() * 5)],
                 refreshTime: randomDate().toISOString(),
                 refreshType: Math.random() > 0.7 ? 'Full Recomputation' : 'Incremental',
                 status: Math.random() > 0.8 ? 'Failed' : 'Success',
                 duration: `${randomTime(5, 120)} min`
             })),
-
-            // Generate failures data
+            
+            // Generate failures data for factory processes
             failedProcesses: Array.from({ length: 8 }, (_, i) => ({
-                id: `failure-${i + 1}`,
+                id: `failure-${i+1}`,
                 step: ['Data Extraction', 'Schema Validation', 'Data Transformation', 'Type Conversion', 'Loading'][Math.floor(Math.random() * 5)],
-                datasource: ['CRM', 'Sales', 'Inventory', 'Marketing', 'Users'][Math.floor(Math.random() * 5)],
+                datasource: ['Assembly Line', 'Quality Control', 'Materials', 'Machinery', 'Production'][Math.floor(Math.random() * 5)],
                 crashTime: randomDate().toISOString(),
                 errorMessage: [
-                    'Schema validation failed: Missing required column "customer_id"',
-                    'Connection timeout while accessing data source',
-                    'Data type mismatch: Expected numeric value, got string',
-                    'Memory allocation error during transformation',
-                    'Foreign key constraint violation while loading data'
+                    'Schema validation failed: Missing required column "part_id"',
+                    'Connection timeout while accessing machine sensors',
+                    'Data type mismatch: Expected numeric value for temperature',
+                    'Memory allocation error during assembly line data processing',
+                    'Foreign key constraint violation while loading maintenance data'
                 ][Math.floor(Math.random() * 5)]
             })),
-
-            // Performance metrics
+            
+            // Performance metrics for factory systems
             performanceMetrics: {
-                avgThroughput: `${(Math.random() * 100 + 50).toFixed(2)} MB/s`,
+                avgThroughput: `${(Math.random() * 100 + 50).toFixed(2)} parts/min`,
                 avgLatency: `${(Math.random() * 200 + 10).toFixed(2)} ms`,
                 errorRate: `${(Math.random() * 5).toFixed(2)}%`,
                 totalDataStored: `${(Math.random() * 1000 + 100).toFixed(2)} GB`,
                 avgPipelineTime: `${randomTime(10, 60)} minutes`
             },
-
-            // Serving layer stats
+            
+            // Serving layer stats for factory data
             servingLayers: Array.from({ length: 5 }, (_, i) => ({
-                name: ['Users View', 'Products View', 'Sales Analytics', 'Inventory Status', 'Marketing Metrics'][i],
+                name: ['Production Dashboard', 'Quality Metrics', 'Machine Status', 'Inventory Levels', 'Maintenance Schedule'][i],
                 dataStored: `${(Math.random() * 100 + 10).toFixed(2)} GB`,
                 lastRefresh: randomDate().toISOString(),
                 avgRefreshTime: `${randomTime(3, 30)} minutes`,
@@ -348,69 +317,65 @@
         };
     };
 
-    // Create a more realistic ETL pipeline with multiple data sources
+    // Create a factory-focused ETL pipeline
     const createEtlPipeline = () => {
         const nodes = [];
         const edges = [];
-
-        // Data source layer (extraction)
+        
+        // Data source layer (extraction) - factory data sources
         const dataSources = [
-            {
-                id: 'src1', name: 'CRM Data', type: 'source', x: 100, y: 80, width: 60, height: 60,
-                details: 'Raw customer data',
-                schema: [
-                    { name: 'customer_id', type: 'string' },
-                    { name: 'name', type: 'string' },
-                    { name: 'email', type: 'string' },
-                    { name: 'signup_date', type: 'date' },
-                    { name: 'is_active', type: 'boolean' }
-                ],
-                code: 'SELECT * FROM crm.customers WHERE created_at > :last_extract_date'
+            { id: 'src1', name: 'Assembly Line', type: 'source', x: 100, y: 80, width: 60, height: 60, 
+              details: 'Assembly line sensor data', 
+              schema: [
+                { name: 'timestamp', type: 'date' },
+                { name: 'station_id', type: 'string' },
+                { name: 'product_id', type: 'string' },
+                { name: 'cycle_time', type: 'float' },
+                { name: 'status', type: 'string' }
+              ],
+              code: 'SELECT * FROM factory.assembly_line WHERE timestamp > :last_extract_date'
             },
-            {
-                id: 'src2', name: 'Sales Data', type: 'source', x: 250, y: 80, width: 60, height: 60,
-                details: 'Transaction records',
-                schema: [
-                    { name: 'transaction_id', type: 'string' },
-                    { name: 'customer_id', type: 'string' },
-                    { name: 'amount', type: 'float' },
-                    { name: 'date', type: 'date' },
-                    { name: 'product_id', type: 'string' }
-                ],
-                code: 'SELECT * FROM sales.transactions WHERE date > :last_extract_date'
+            { id: 'src2', name: 'Quality Control', type: 'source', x: 250, y: 80, width: 60, height: 60, 
+              details: 'Quality inspection data', 
+              schema: [
+                { name: 'inspection_id', type: 'string' },
+                { name: 'product_id', type: 'string' },
+                { name: 'result', type: 'string' },
+                { name: 'timestamp', type: 'date' },
+                { name: 'inspector_id', type: 'string' }
+              ],
+              code: 'SELECT * FROM factory.quality_control WHERE timestamp > :last_extract_date'
             },
-            {
-                id: 'src3', name: 'Inventory', type: 'source', x: 400, y: 80, width: 60, height: 60,
-                details: 'Product inventory',
-                schema: [
-                    { name: 'product_id', type: 'string' },
-                    { name: 'name', type: 'string' },
-                    { name: 'category', type: 'string' },
-                    { name: 'stock_level', type: 'integer' },
-                    { name: 'price', type: 'float' }
-                ],
-                code: 'SELECT * FROM inventory.products'
+            { id: 'src3', name: 'Machinery', type: 'source', x: 400, y: 80, width: 60, height: 60, 
+              details: 'Machine status and telemetry', 
+              schema: [
+                { name: 'machine_id', type: 'string' },
+                { name: 'status', type: 'string' },
+                { name: 'temperature', type: 'float' },
+                { name: 'vibration', type: 'float' },
+                { name: 'timestamp', type: 'date' }
+              ],
+              code: 'SELECT * FROM factory.machinery WHERE timestamp > :last_extract_date'
             },
-            {
-                id: 'src4', name: 'Marketing', type: 'source', x: 550, y: 80, width: 60, height: 60,
-                details: 'Campaign data',
-                schema: [
-                    { name: 'campaign_id', type: 'string' },
-                    { name: 'name', type: 'string' },
-                    { name: 'start_date', type: 'date' },
-                    { name: 'end_date', type: 'date' },
-                    { name: 'budget', type: 'float' }
-                ],
-                code: 'SELECT * FROM marketing.campaigns WHERE end_date > CURRENT_DATE - 90'
+            { id: 'src4', name: 'Materials', type: 'source', x: 550, y: 80, width: 60, height: 60, 
+              details: 'Raw materials inventory', 
+              schema: [
+                { name: 'material_id', type: 'string' },
+                { name: 'name', type: 'string' },
+                { name: 'quantity', type: 'integer' },
+                { name: 'location', type: 'string' },
+                { name: 'last_update', type: 'date' }
+              ],
+              code: 'SELECT * FROM factory.materials WHERE last_update > CURRENT_DATE - 90'
             }
         ];
-
+        
         nodes.push(...dataSources);
-
-        // Schema validation nodes (must follow each data source)
+        
+        // Schema validation nodes
         dataSources.forEach((source, i) => {
             const schemaNode = {
-                id: `schema${i + 1}`,
+                id: `schema${i+1}`,
                 name: 'Schema Validation',
                 type: 'extraction',
                 x: source.x,
@@ -421,284 +386,262 @@
                 parentId: source.id,
                 schema: source.schema,
                 code: `-- Schema validation for ${source.name}
-VALIDATE TABLE structure (
-    ${source.schema.map(col => `${col.name} ${col.type}`).join(',\n    ')}
-)`
+    VALIDATE TABLE structure (
+        ${source.schema.map(col => `${col.name} ${col.type}`).join(',\n    ')}
+    )`
             };
-
+            
             nodes.push(schemaNode);
             edges.push({ from: source.id, to: schemaNode.id });
         });
-
-        // Transformation nodes
+        
+        // Transformation nodes - for factory data
         const transformations = [
-            // CRM data transformations
-            {
-                id: 't1', name: 'Clean CRM', type: 'transformation', x: 100, y: 240, width: 50, height: 50,
-                details: 'Clean customer data',
-                code: `-- Clean CRM data
-SELECT 
-    customer_id,
-    TRIM(name) AS name,
-    LOWER(email) AS email,
-    signup_date,
-    is_active
-FROM crm_raw`,
-                schema: [
-                    { name: 'customer_id', type: 'string' },
-                    { name: 'name', type: 'string' },
-                    { name: 'email', type: 'string' },
-                    { name: 'signup_date', type: 'date' },
-                    { name: 'is_active', type: 'boolean' }
-                ]
+            // Assembly line data transformations
+            { id: 't1', name: 'Clean Assembly', type: 'transformation', x: 100, y: 240, width: 50, height: 50, 
+              details: 'Normalize assembly line data',
+              code: `-- Clean assembly line data
+    SELECT 
+        timestamp,
+        station_id,
+        product_id,
+        ROUND(cycle_time, 2) AS cycle_time,
+        status
+    FROM assembly_line_raw
+    WHERE cycle_time > 0`,
+              schema: [
+                { name: 'timestamp', type: 'date' },
+                { name: 'station_id', type: 'string' },
+                { name: 'product_id', type: 'string' },
+                { name: 'cycle_time', type: 'float' },
+                { name: 'status', type: 'string' }
+              ]
             },
-
-            // Sales data transformations
-            {
-                id: 't2', name: 'Clean Sales', type: 'transformation', x: 250, y: 240, width: 50, height: 50,
-                details: 'Clean sales transactions',
-                code: `-- Clean Sales data
-SELECT 
-    transaction_id,
-    customer_id,
-    ROUND(amount, 2) AS amount,
-    date,
-    product_id
-FROM sales_raw`,
-                schema: [
-                    { name: 'transaction_id', type: 'string' },
-                    { name: 'customer_id', type: 'string' },
-                    { name: 'amount', type: 'float' },
-                    { name: 'date', type: 'date' },
-                    { name: 'product_id', type: 'string' }
-                ]
+            
+            // Quality data transformations
+            { id: 't2', name: 'Clean Quality', type: 'transformation', x: 250, y: 240, width: 50, height: 50, 
+              details: 'Clean quality inspection data',
+              code: `-- Clean quality control data
+    SELECT 
+        inspection_id,
+        product_id,
+        UPPER(result) AS result,
+        timestamp,
+        inspector_id
+    FROM quality_control_raw`,
+              schema: [
+                { name: 'inspection_id', type: 'string' },
+                { name: 'product_id', type: 'string' },
+                { name: 'result', type: 'string' },
+                { name: 'timestamp', type: 'date' },
+                { name: 'inspector_id', type: 'string' }
+              ]
             },
-            {
-                id: 't3', name: 'Enrich Sales', type: 'transformation', x: 250, y: 310, width: 50, height: 50,
-                details: 'Add product information to sales',
-                code: `-- Enrich sales with product data
-SELECT 
-    s.transaction_id,
-    s.customer_id,
-    s.amount,
-    s.date,
-    s.product_id,
-    p.name AS product_name,
-    p.category AS product_category
-FROM clean_sales s
-JOIN clean_inventory p ON s.product_id = p.product_id`,
-                schema: [
-                    { name: 'transaction_id', type: 'string' },
-                    { name: 'customer_id', type: 'string' },
-                    { name: 'amount', type: 'float' },
-                    { name: 'date', type: 'date' },
-                    { name: 'product_id', type: 'string' },
-                    { name: 'product_name', type: 'string' },
-                    { name: 'product_category', type: 'string' }
-                ]
+            { id: 't3', name: 'Defect Analysis', type: 'transformation', x: 250, y: 310, width: 50, height: 50, 
+              details: 'Analyze product defects',
+              code: `-- Analyze defect patterns
+    SELECT 
+        q.product_id,
+        COUNT(*) as defect_count,
+        STRING_AGG(q.inspection_id, ',') as inspections,
+        MIN(q.timestamp) as first_defect,
+        MAX(q.timestamp) as last_defect
+    FROM clean_quality q
+    WHERE q.result = 'FAIL'
+    GROUP BY q.product_id`,
+              schema: [
+                { name: 'product_id', type: 'string' },
+                { name: 'defect_count', type: 'integer' },
+                { name: 'inspections', type: 'string' },
+                { name: 'first_defect', type: 'date' },
+                { name: 'last_defect', type: 'date' }
+              ]
             },
-
-            // Inventory transformations
-            {
-                id: 't4', name: 'Clean Inventory', type: 'transformation', x: 400, y: 240, width: 50, height: 50,
-                details: 'Normalize inventory data',
-                code: `-- Clean inventory data
-SELECT 
-    product_id,
-    TRIM(name) AS name,
-    category,
-    stock_level,
-    price
-FROM inventory_raw
-WHERE stock_level >= 0`,
-                schema: [
-                    { name: 'product_id', type: 'string' },
-                    { name: 'name', type: 'string' },
-                    { name: 'category', type: 'string' },
-                    { name: 'stock_level', type: 'integer' },
-                    { name: 'price', type: 'float' }
-                ]
+            
+            // Machinery transformations
+            { id: 't4', name: 'Clean Machinery', type: 'transformation', x: 400, y: 240, width: 50, height: 50, 
+              details: 'Process machine telemetry',
+              code: `-- Clean machinery data
+    SELECT 
+        machine_id,
+        status,
+        ROUND(temperature, 1) AS temperature,
+        ROUND(vibration, 3) AS vibration,
+        timestamp
+    FROM machinery_raw
+    WHERE temperature BETWEEN 0 AND 150`,
+              schema: [
+                { name: 'machine_id', type: 'string' },
+                { name: 'status', type: 'string' },
+                { name: 'temperature', type: 'float' },
+                { name: 'vibration', type: 'float' },
+                { name: 'timestamp', type: 'date' }
+              ]
             },
-
-            // Marketing transformations
-            {
-                id: 't5', name: 'Clean Marketing', type: 'transformation', x: 550, y: 240, width: 50, height: 50,
-                details: 'Normalize campaign data',
-                code: `-- Clean marketing data
-SELECT 
-    campaign_id,
-    TRIM(name) AS name,
-    start_date,
-    end_date,
-    budget
-FROM marketing_raw
-WHERE start_date IS NOT NULL AND end_date IS NOT NULL`,
-                schema: [
-                    { name: 'campaign_id', type: 'string' },
-                    { name: 'name', type: 'string' },
-                    { name: 'start_date', type: 'date' },
-                    { name: 'end_date', type: 'date' },
-                    { name: 'budget', type: 'float' }
-                ]
+            
+            // Materials transformations
+            { id: 't5', name: 'Clean Materials', type: 'transformation', x: 550, y: 240, width: 50, height: 50, 
+              details: 'Normalize materials data',
+              code: `-- Clean materials data
+    SELECT 
+        material_id,
+        TRIM(name) AS name,
+        quantity,
+        location,
+        last_update
+    FROM materials_raw
+    WHERE quantity >= 0`,
+              schema: [
+                { name: 'material_id', type: 'string' },
+                { name: 'name', type: 'string' },
+                { name: 'quantity', type: 'integer' },
+                { name: 'location', type: 'string' },
+                { name: 'last_update', type: 'date' }
+              ]
             },
-
-            // Joins and aggregations
-            {
-                id: 't6', name: 'Customer 360', type: 'transformation', x: 330, y: 380, width: 50, height: 50,
-                details: 'Create complete customer view',
-                code: `-- Create 360 view of customers
-SELECT 
-    c.customer_id,
-    c.name,
-    c.email,
-    c.signup_date,
-    c.is_active,
-    COUNT(s.transaction_id) AS total_transactions,
-    SUM(s.amount) AS lifetime_value
-FROM clean_crm c
-LEFT JOIN enriched_sales s ON c.customer_id = s.customer_id
-GROUP BY 
-    c.customer_id, c.name, c.email, c.signup_date, c.is_active`,
-                schema: [
-                    { name: 'customer_id', type: 'string' },
-                    { name: 'name', type: 'string' },
-                    { name: 'email', type: 'string' },
-                    { name: 'signup_date', type: 'date' },
-                    { name: 'is_active', type: 'boolean' },
-                    { name: 'total_transactions', type: 'integer' },
-                    { name: 'lifetime_value', type: 'float' }
-                ]
+            
+            // Production Status aggregation
+            { id: 't6', name: 'Production Status', type: 'transformation', x: 330, y: 380, width: 50, height: 50, 
+              details: 'Aggregate production metrics',
+              code: `-- Create production status view
+    SELECT 
+        a.station_id,
+        COUNT(a.product_id) AS products_processed,
+        AVG(a.cycle_time) AS avg_cycle_time,
+        SUM(CASE WHEN q.result = 'PASS' THEN 1 ELSE 0 END) AS passed_quality,
+        SUM(CASE WHEN q.result = 'FAIL' THEN 1 ELSE 0 END) AS failed_quality,
+        MAX(a.timestamp) AS last_activity
+    FROM clean_assembly a
+    LEFT JOIN clean_quality q ON a.product_id = q.product_id
+    GROUP BY a.station_id`,
+              schema: [
+                { name: 'station_id', type: 'string' },
+                { name: 'products_processed', type: 'integer' },
+                { name: 'avg_cycle_time', type: 'float' },
+                { name: 'passed_quality', type: 'integer' },
+                { name: 'failed_quality', type: 'integer' },
+                { name: 'last_activity', type: 'date' }
+              ]
             }
         ];
-
+        
         nodes.push(...transformations);
-
+        
         // Connect schema validation nodes to transformations
         edges.push(
-            { from: 'schema1', to: 't1' }, // CRM schema to CRM transformation
-            { from: 'schema2', to: 't2' }, // Sales schema to Sales transformation
-            { from: 'schema3', to: 't4' }, // Inventory schema to Inventory transformation
-            { from: 'schema4', to: 't5' }  // Marketing schema to Marketing transformation
+            { from: 'schema1', to: 't1' }, // Assembly schema to Assembly transformation
+            { from: 'schema2', to: 't2' }, // Quality schema to Quality transformation
+            { from: 'schema3', to: 't4' }, // Machinery schema to Machinery transformation
+            { from: 'schema4', to: 't5' }  // Materials schema to Materials transformation
         );
-
+        
         // Connect transformations in sequence
         edges.push(
-            { from: 't2', to: 't3' }, // Clean Sales to Enrich Sales
-            { from: 't1', to: 't6' }, // Clean CRM to Customer 360
-            { from: 't3', to: 't6' }, // Enrich Sales to Customer 360
-            { from: 't4', to: 't3' }  // Clean Inventory to Enrich Sales
+            { from: 't2', to: 't3' }, // Clean Quality to Defect Analysis
+            { from: 't1', to: 't6' }, // Clean Assembly to Production Status
+            { from: 't3', to: 't6' }, // Defect Analysis to Production Status
+            { from: 't4', to: 't3' }  // Clean Machinery to Defect Analysis
         );
-
+        
         // Load nodes - final output tables
         const loadNodes = [
-            {
-                id: 'l1', name: 'Customer View', type: 'load', x: 180, y: 500, width: 70, height: 60,
-                details: 'Customer analytics view',
-                code: `-- Load Customer View
-INSERT INTO prod.customer_view
-SELECT * FROM customer_360_view`,
-                schema: [
-                    { name: 'customer_id', type: 'string' },
-                    { name: 'name', type: 'string' },
-                    { name: 'email', type: 'string' },
-                    { name: 'signup_date', type: 'date' },
-                    { name: 'is_active', type: 'boolean' },
-                    { name: 'total_transactions', type: 'integer' },
-                    { name: 'lifetime_value', type: 'float' }
-                ],
-                stats: {
-                    dataStored: '42.3 GB',
-                    lastRefresh: '2025-03-25T14:30:00Z',
-                    avgRefreshTime: '18 minutes',
-                    queryCount: 4231,
-                    refreshFrequency: 'Daily'
-                }
+            { id: 'l1', name: 'Production Dashboard', type: 'load', x: 180, y: 500, width: 70, height: 60, 
+              details: 'Factory production dashboard',
+              code: `-- Load Production Dashboard
+    INSERT INTO prod.production_dashboard
+    SELECT * FROM production_status_view`,
+              schema: [
+                { name: 'station_id', type: 'string' },
+                { name: 'products_processed', type: 'integer' },
+                { name: 'avg_cycle_time', type: 'float' },
+                { name: 'passed_quality', type: 'integer' },
+                { name: 'failed_quality', type: 'integer' },
+                { name: 'last_activity', type: 'date' }
+              ],
+              stats: {
+                dataStored: '42.3 GB',
+                lastRefresh: '2025-03-25T14:30:00Z',
+                avgRefreshTime: '18 minutes',
+                queryCount: 4231,
+                refreshFrequency: 'Hourly'
+              }
             },
-            {
-                id: 'l2', name: 'Sales View', type: 'load', x: 330, y: 500, width: 70, height: 60,
-                details: 'Sales analytics view',
-                code: `-- Load Sales View
-INSERT INTO prod.sales_view
-SELECT * FROM enriched_sales`,
-                schema: [
-                    { name: 'transaction_id', type: 'string' },
-                    { name: 'customer_id', type: 'string' },
-                    { name: 'amount', type: 'float' },
-                    { name: 'date', type: 'date' },
-                    { name: 'product_id', type: 'string' },
-                    { name: 'product_name', type: 'string' },
-                    { name: 'product_category', type: 'string' }
-                ],
-                stats: {
-                    dataStored: '78.6 GB',
-                    lastRefresh: '2025-03-26T08:15:00Z',
-                    avgRefreshTime: '23 minutes',
-                    queryCount: 6842,
-                    refreshFrequency: 'Hourly'
-                }
+            { id: 'l2', name: 'Quality Metrics', type: 'load', x: 330, y: 500, width: 70, height: 60, 
+              details: 'Quality control metrics',
+              code: `-- Load Quality Metrics
+    INSERT INTO prod.quality_metrics
+    SELECT * FROM defect_analysis`,
+              schema: [
+                { name: 'product_id', type: 'string' },
+                { name: 'defect_count', type: 'integer' },
+                { name: 'inspections', type: 'string' },
+                { name: 'first_defect', type: 'date' },
+                { name: 'last_defect', type: 'date' }
+              ],
+              stats: {
+                dataStored: '78.6 GB',
+                lastRefresh: '2025-03-26T08:15:00Z',
+                avgRefreshTime: '23 minutes',
+                queryCount: 6842,
+                refreshFrequency: 'Daily'
+              }
             },
-            {
-                id: 'l3', name: 'Inventory View', type: 'load', x: 480, y: 500, width: 70, height: 60,
-                details: 'Product inventory view',
-                code: `-- Load Inventory View
-INSERT INTO prod.inventory_view
-SELECT * FROM clean_inventory`,
-                schema: [
-                    { name: 'product_id', type: 'string' },
-                    { name: 'name', type: 'string' },
-                    { name: 'category', type: 'string' },
-                    { name: 'stock_level', type: 'integer' },
-                    { name: 'price', type: 'float' }
-                ],
-                stats: {
-                    dataStored: '12.8 GB',
-                    lastRefresh: '2025-03-26T06:45:00Z',
-                    avgRefreshTime: '8 minutes',
-                    queryCount: 3517,
-                    refreshFrequency: '6 Hours'
-                }
+            { id: 'l3', name: 'Machine Status', type: 'load', x: 480, y: 500, width: 70, height: 60, 
+              details: 'Real-time machine status',
+              code: `-- Load Machine Status
+    INSERT INTO prod.machine_status
+    SELECT * FROM clean_machinery`,
+              schema: [
+                { name: 'machine_id', type: 'string' },
+                { name: 'status', type: 'string' },
+                { name: 'temperature', type: 'float' },
+                { name: 'vibration', type: 'float' },
+                { name: 'timestamp', type: 'date' }
+              ],
+              stats: {
+                dataStored: '112.8 GB',
+                lastRefresh: '2025-03-26T06:45:00Z',
+                avgRefreshTime: '8 minutes',
+                queryCount: 7517,
+                refreshFrequency: '10 Minutes'
+              }
             }
         ];
-
+        
         nodes.push(...loadNodes);
-
+        
         // Connect transformations to loads
         edges.push(
-            { from: 't6', to: 'l1' }, // Customer 360 to Customer View
-            { from: 't3', to: 'l2' }, // Enriched Sales to Sales View
-            { from: 't4', to: 'l3' }  // Clean Inventory to Inventory View
+            { from: 't6', to: 'l1' }, // Production Status to Production Dashboard
+            { from: 't3', to: 'l2' }, // Defect Analysis to Quality Metrics
+            { from: 't4', to: 'l3' }  // Clean Machinery to Machine Status
         );
-
+        
         // Query nodes (usage examples)
         const queryNodes = [
-            {
-                id: 'q1', name: 'Active User Report', type: 'query', x: 180, y: 600, width: 60, height: 40,
-                details: 'Active customers report',
-                code: `SELECT * FROM customer_view WHERE is_active = true`
-            },
-            {
-                id: 'q2', name: 'Sales by Product', type: 'query', x: 330, y: 600, width: 60, height: 40,
-                details: 'Product sales analysis',
-                code: `SELECT product_name, SUM(amount) AS total_sales
-FROM sales_view
-GROUP BY product_name
-ORDER BY total_sales DESC` },
-            {
-                id: 'q3', name: 'Low Stock Alert', type: 'query', x: 480, y: 600, width: 60, height: 40,
-                details: 'Products with low inventory',
-                code: `SELECT * FROM inventory_view WHERE stock_level < 10`
-            }
+            { id: 'q1', name: 'Efficiency Report', type: 'query', x: 180, y: 600, width: 60, height: 40, 
+              details: 'Station efficiency report',
+              code: `SELECT * FROM production_dashboard ORDER BY avg_cycle_time ASC` },
+            { id: 'q2', name: 'Quality Issues', type: 'query', x: 330, y: 600, width: 60, height: 40, 
+              details: 'Top quality issues',
+              code: `SELECT product_id, defect_count
+    FROM quality_metrics
+    ORDER BY defect_count DESC
+    LIMIT 10` },
+            { id: 'q3', name: 'Overheating Alert', type: 'query', x: 480, y: 600, width: 60, height: 40, 
+              details: 'Machines with temperature alerts',
+              code: `SELECT * FROM machine_status WHERE temperature > 85` }
         ];
-
+        
         nodes.push(...queryNodes);
-
+        
         // Connect load to queries
         edges.push(
             { from: 'l1', to: 'q1' },
             { from: 'l2', to: 'q2' },
             { from: 'l3', to: 'q3' }
         );
-
+        
         return { nodes, edges };
     };
 
@@ -1163,79 +1106,58 @@ ORDER BY total_sales DESC` },
         refreshesTab.appendChild(failedSection);
     }
 
-    // Function to convert metric cards to KPI-style cards
-    function updatePerformanceView() {
+    // Populate the Performance section
+    function populatePerformance() {
         const performanceTab = document.querySelector('.tab-content[data-tab="2"]');
-        
+
         // Clear previous content
         performanceTab.innerHTML = '';
-        
-        // Create metric cards with KPI styling
+
+        // Create metric cards with factory focus
         const metrics = fakeData.performanceMetrics;
         const metricsSection = document.createElement('div');
-        metricsSection.className = 'kpi-dashboard';
+        metricsSection.className = 'metric-cards';
         
         metricsSection.innerHTML = `
-            <div class="kpi-card primary">
-                <div class="kpi-title">
-                    <i class="fa fa-tachometer-alt"></i> Avg Throughput
-                </div>
-                <div class="kpi-value">${metrics.avgThroughput}</div>
+            <div class="metric-card">
+                <h3>Production Rate</h3>
+                <div class="metric-value">${metrics.avgThroughput}</div>
             </div>
-            
-            <div class="kpi-card info">
-                <div class="kpi-title">
-                    <i class="fa fa-clock"></i> Avg Latency
-                </div>
-                <div class="kpi-value">${metrics.avgLatency}</div>
+            <div class="metric-card">
+                <h3>Sensor Response</h3>
+                <div class="metric-value">${metrics.avgLatency}</div>
             </div>
-            
-            <div class="kpi-card danger">
-                <div class="kpi-title">
-                    <i class="fa fa-exclamation-triangle"></i> Error Rate
-                </div>
-                <div class="kpi-value">${metrics.errorRate}</div>
+            <div class="metric-card">
+                <h3>Defect Rate</h3>
+                <div class="metric-value">${metrics.errorRate}</div>
             </div>
-            
-            <div class="kpi-card success">
-                <div class="kpi-title">
-                    <i class="fa fa-database"></i> Total Data Stored
-                </div>
-                <div class="kpi-value">${metrics.totalDataStored}</div>
+            <div class="metric-card">
+                <h3>Total Data Volume</h3>
+                <div class="metric-value">${metrics.totalDataStored}</div>
             </div>
-            
-            <div class="kpi-card warning">
-                <div class="kpi-title">
-                    <i class="fa fa-hourglass-half"></i> Avg Pipeline Time
-                </div>
-                <div class="kpi-value">${metrics.avgPipelineTime}</div>
-            </div>
-            
-            <div class="kpi-card secondary">
-                <div class="kpi-title">
-                    <i class="fa fa-chart-line"></i> Daily Executions
-                </div>
-                <div class="kpi-value">342</div>
+            <div class="metric-card">
+                <h3>Processing Time</h3>
+                <div class="metric-value">${metrics.avgPipelineTime}</div>
             </div>
         `;
         
         performanceTab.appendChild(metricsSection);
         
-        // Create serving layer table
+        // Create factory data views table
         const servingSection = document.createElement('div');
-        servingSection.innerHTML = '<h3>Serving Layer Statistics</h3>';
+        servingSection.innerHTML = '<h3>Factory Data Views</h3>';
         
         const servingTable = document.createElement('table');
         servingTable.className = 'data-table';
         servingTable.innerHTML = `
             <thead>
                 <tr>
-                    <th>View Name</th>
-                    <th>Data Stored</th>
-                    <th>Last Refresh</th>
-                    <th>Avg Refresh Time</th>
+                    <th>Dashboard</th>
+                    <th>Data Volume</th>
+                    <th>Last Update</th>
+                    <th>Refresh Interval</th>
                     <th>Query Count</th>
-                    <th>Refresh Frequency</th>
+                    <th>Refresh Schedule</th>
                 </tr>
             </thead>
             <tbody>
@@ -1255,312 +1177,6 @@ ORDER BY total_sales DESC` },
         servingSection.appendChild(servingTable);
         performanceTab.appendChild(servingSection);
     }
-
-    // Add KPI card styles from testData.html
-    document.head.insertAdjacentHTML('beforeend', `
-    <style>
-        /* KPI Dashboard Styles */
-        .kpi-dashboard {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .kpi-card {
-            background-color: var(--container-bg, #f8f9fa);
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .kpi-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .kpi-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-        }
-        
-        .kpi-card.primary::before { background-color: #4285F4; }
-        .kpi-card.success::before { background-color: #34A853; }
-        .kpi-card.warning::before { background-color: #FBBC05; }
-        .kpi-card.danger::before { background-color: #EA4335; }
-        .kpi-card.info::before { background-color: #5B8AF5; }
-        .kpi-card.secondary::before { background-color: #9C27B0; }
-        
-        .kpi-title {
-            font-size: 0.95rem;
-            color: var(--text-color-secondary, #666);
-            margin-bottom: 8px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-        }
-        
-        .kpi-title i {
-            margin-right: 8px;
-            opacity: 0.7;
-        }
-        
-        .kpi-value {
-            font-size: 2.2rem;
-            font-weight: bold;
-            color: var(--text-color, #333);
-            margin-bottom: 5px;
-        }
-        
-        /* Enhanced node details */
-        .node-info-cards {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-    </style>
-    `);
-
-    // Fix sidebar display
-    function fixSidebar() {
-        const sidebar = document.querySelector('.sidebar');
-        // Make sure sidebar is properly positioned
-        sidebar.style.width = '300px';
-        sidebar.style.display = 'block';
-        sidebar.style.height = 'calc(var(--page-height))';
-    }
-
-    // Enhanced node detail rendering with KPI cards
-    function enhancedNodeDetails(node) {
-        // Show the node details container
-        const mainTimeline = document.querySelector('.main-timeline');
-        const mainEditor = document.querySelector('.main-editor');
-        
-        mainTimeline.style.display = 'none';
-        mainEditor.style.display = 'block';
-        
-        // Clear previous content
-        mainEditor.innerHTML = '';
-        
-        // Create header with back button
-        const header = document.createElement('div');
-        header.className = 'editor-header';
-        
-        const backButton = document.createElement('button');
-        backButton.innerHTML = '&larr; Back to Timeline';
-        backButton.className = 'btn btn-secondary';
-        backButton.onclick = () => {
-            mainEditor.style.display = 'none';
-            mainTimeline.style.display = 'block';
-        };
-        
-        const title = document.createElement('h2');
-        title.textContent = `${node.name} (${node.id})`;
-        
-        header.appendChild(backButton);
-        header.appendChild(title);
-        mainEditor.appendChild(header);
-        
-        // Node info with KPI cards
-        const nodeInfoSection = document.createElement('div');
-        nodeInfoSection.className = 'node-info-cards';
-        
-        // Add type and details cards
-        nodeInfoSection.innerHTML = `
-            <div class="kpi-card ${getCardStyleForNodeType(node.type)}">
-                <div class="kpi-title">
-                    <i class="fa ${getIconForNodeType(node.type)}"></i> Node Type
-                </div>
-                <div class="kpi-value">${capitalizeFirstLetter(node.type)}</div>
-            </div>
-            
-            <div class="kpi-card info">
-                <div class="kpi-title">
-                    <i class="fa fa-info-circle"></i> Details
-                </div>
-                <div class="kpi-value" style="font-size: 1.2rem;">${node.details}</div>
-            </div>
-        `;
-        
-        mainEditor.appendChild(nodeInfoSection);
-        
-        // If it's a node with SQL, show the code section
-        if (node.code) {
-            const codeSection = document.createElement('div');
-            codeSection.className = 'code-section';
-            
-            const codeTitle = document.createElement('h3');
-            codeTitle.textContent = 'SQL Code';
-            
-            const codeBlock = document.createElement('pre');
-            codeBlock.className = 'sql-code';
-            codeBlock.textContent = node.code;
-            
-            codeSection.appendChild(codeTitle);
-            codeSection.appendChild(codeBlock);
-            mainEditor.appendChild(codeSection);
-        }
-        
-        // If node has schema, show data table
-        if (node.schema) {
-            const dataSection = document.createElement('div');
-            dataSection.className = 'data-section';
-            
-            const dataTitle = document.createElement('h3');
-            dataTitle.textContent = 'Data Preview';
-            
-            const table = document.createElement('table');
-            table.className = 'data-table';
-            
-            // Create header row
-            const thead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
-            
-            node.schema.forEach(column => {
-                const th = document.createElement('th');
-                th.innerHTML = `${column.name}<br><span class="column-type">${column.type}</span>`;
-                headerRow.appendChild(th);
-            });
-            
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-            
-            // Create data rows with fake data based on schema
-            const tbody = document.createElement('tbody');
-            const rowCount = 10;
-            
-            // Generate random data based on column types
-            const generateValue = (type) => {
-                switch(type) {
-                    case 'string':
-                        return `sample-${Math.random().toString(36).substring(2, 8)}`;
-                    case 'integer':
-                        return Math.floor(Math.random() * 1000);
-                    case 'float':
-                        return +(Math.random() * 100).toFixed(2);
-                    case 'boolean':
-                        return Math.random() > 0.5 ? 'true' : 'false';
-                    case 'date':
-                        const date = new Date();
-                        date.setDate(date.getDate() - Math.floor(Math.random() * 365));
-                        return date.toISOString().split('T')[0];
-                    default:
-                        return 'N/A';
-                }
-            };
-            
-            for (let i = 0; i < rowCount; i++) {
-                const dataRow = document.createElement('tr');
-                
-                node.schema.forEach(column => {
-                    const td = document.createElement('td');
-                    td.textContent = generateValue(column.type);
-                    dataRow.appendChild(td);
-                });
-                
-                tbody.appendChild(dataRow);
-            }
-            
-            table.appendChild(tbody);
-            dataSection.appendChild(dataTitle);
-            dataSection.appendChild(table);
-            mainEditor.appendChild(dataSection);
-        }
-        
-        // Show sidebar with node details
-        enhancedSidebar(node);
-    }
-
-    // Enhanced sidebar with node configuration
-    function enhancedSidebar(node) {
-        const sidebar = document.querySelector('.sidebar');
-        const sideHistory = document.getElementById('history');
-        
-        // Make sidebar visible
-        fixSidebar();
-        
-        // Generate configuration info for sidebar
-        let configInfo = `# ${node.name} (${node.id})\n\n`;
-        configInfo += `**Type:** ${node.type}\n\n`;
-        configInfo += `**Details:** ${node.details}\n\n`;
-        
-        if (node.type === 'load' && node.stats) {
-            configInfo += `## Statistics\n\n`;
-            configInfo += `- Data Stored: ${node.stats.dataStored}\n`;
-            configInfo += `- Last Refresh: ${new Date(node.stats.lastRefresh).toLocaleString()}\n`;
-            configInfo += `- Avg Refresh Time: ${node.stats.avgRefreshTime}\n`;
-            configInfo += `- Query Count: ${node.stats.queryCount.toLocaleString()}\n`;
-            configInfo += `- Refresh Frequency: ${node.stats.refreshFrequency}\n\n`;
-        }
-        
-        if (node.schema) {
-            configInfo += `## Schema\n\n`;
-            node.schema.forEach(col => {
-                configInfo += `- ${col.name} (${col.type})\n`;
-            });
-        }
-        
-        sideHistory.value = configInfo;
-    }
-
-    // Helper functions for node styling
-    function getCardStyleForNodeType(type) {
-        switch(type) {
-            case 'source': return 'success';
-            case 'extraction': return 'primary';
-            case 'transformation': return 'warning';
-            case 'load': return 'danger';
-            case 'query': return 'secondary';
-            default: return 'info';
-        }
-    }
-
-    function getIconForNodeType(type) {
-        switch(type) {
-            case 'source': return 'fa-database';
-            case 'extraction': return 'fa-filter';
-            case 'transformation': return 'fa-cogs';
-            case 'load': return 'fa-upload';
-            case 'query': return 'fa-search';
-            default: return 'fa-cube';
-        }
-    }
-
-    function capitalizeFirstLetter(string) {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }
-
-    // Replace the existing functions with the enhanced versions
-    const originalPopulatePerformance = populatePerformance;
-    populatePerformance = updatePerformanceView;
-
-    const originalRenderNodeDetails = renderNodeDetails;
-    renderNodeDetails = enhancedNodeDetails;
-
-    const originalUpdateSidebar = updateSidebar;
-    updateSidebar = enhancedSidebar;
-
-    // Initialize the ETL page on load
-    document.addEventListener('DOMContentLoaded', () => {
-        // Initialize tab content with enhanced styles
-        populateRefreshes();
-        populatePerformance();
-        
-        // Set first tab as active
-        document.querySelector('.tab-navigation button[data-tab="1"]').click();
-        
-        // Initial draw
-        drawPipeline();
-    });
 
     // Mouse move handler
     canvas.addEventListener('mousemove', (e) => {
@@ -1690,3 +1306,108 @@ ORDER BY total_sales DESC` },
     
     .data-table {
         width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+    
+    .data-table th, .data-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    
+    .data-table th {
+        background-color: #f2f2f2;
+    }
+    
+    .column-type {
+        font-size: 0.8em;
+        color: #666;
+    }
+    
+    .metric-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .metric-card {
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        padding: 15px;
+        min-width: 180px;
+        flex: 1;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .metric-card h3 {
+        margin-top: 0;
+        color: #555;
+        font-size: 0.9em;
+    }
+    
+    .metric-value {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .failed-row {
+        background-color: rgba(255, 200, 200, 0.3);
+    }
+    
+    .status-success {
+        color: green;
+        font-weight: bold;
+    }
+    
+    .status-failed {
+        color: red;
+        font-weight: bold;
+    }
+    
+    .error-message {
+        color: #d32f2f;
+        max-width: 400px;
+    }
+`;
+    document.head.appendChild(style);
+
+    // Setup tab navigation
+    document.querySelectorAll('.tab-navigation button').forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.getAttribute('data-tab');
+
+            // Remove active class from all buttons and tabs
+            document.querySelectorAll('.tab-navigation button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Add active class to current button and tab
+            button.classList.add('active');
+            document.querySelector(`.tab-content[data-tab="${tabId}"]`).classList.add('active');
+        });
+    });
+
+    // Initialize tab content
+    populateRefreshes();
+    populatePerformance();
+
+    // Initial setup
+    document.querySelector('.tab-navigation button[data-tab="1"]').click();
+
+    // Initial draw
+    drawPipeline();
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        drawPipeline();
+    });
+
+</script>

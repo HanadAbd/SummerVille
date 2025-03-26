@@ -4,7 +4,13 @@
     :root {
         --page-height: calc(100vh - 120px);
     }
-
+    #metadataTextarea{
+        overflow-y: auto;
+    }
+    #queryResultTable{
+        max-height: 300px;
+        overflow-y: auto;
+    }
     main {
         display: flex;
         justify-content: center;
@@ -394,7 +400,10 @@
                     </div>
 
                     <div class="tab-content" data-tab="2">
-                        <h3>Metadata for Speed Layer</h3>
+                        <h3>Metadata</h3>
+                        <textarea id="metadataTextarea" class="query-textarea" style="height: 300px;" readonly></textarea>
+                        
+                        <h3>Speed Layer Settings</h3>
                         <div class="input-group">
                             <label for="incrementalField">Incremental Field:</label>
                             <select id="incrementalField">
@@ -437,34 +446,18 @@
                     <div class="tab-content" data-tab="3">
                         <h3>Data Source Dependencies</h3>
                         <div class="table-container">
-                            <table class="parameters-table">
+                            <table class="parameters-table" id="dependenciesTable">
                                 <thead>
                                     <tr>
-                                        <th>Data Source</th>
-                                        <th>Last Refresh</th>
-                                        <th>Refresh Frequency</th>
-                                        <th>Status</th>
+                                        <th>ID</th>
+                                        <th>Type</th>
+                                        <th>Query</th>
+                                        <th>Function</th>
+                                        <th>Order</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>Worker Clock In Sheet</td>
-                                        <td>2023-05-15 07:00:00</td>
-                                        <td>3 times a day</td>
-                                        <td>Active</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Energy Consumption Report</td>
-                                        <td>2023-05-15 00:00:00</td>
-                                        <td>Daily</td>
-                                        <td>Active</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Heat Sensor</td>
-                                        <td>2023-05-15 12:30:00</td>
-                                        <td>Live</td>
-                                        <td>Active</td>
-                                    </tr>
+                                    <!-- Dependencies will be populated here -->
                                 </tbody>
                             </table>
                         </div>
@@ -536,11 +529,6 @@
             });
         });
 
-        document.getElementById('materializedViewCheck').addEventListener('change', function () {
-            const options = document.getElementById('materializedViewOptions');
-            options.style.display = this.checked ? 'block' : 'none';
-        });
-
         document.querySelectorAll('.side-item-title').forEach(item => {
             item.addEventListener('click', function () {
                 const content = this.parentElement.querySelector('.side-item-content');
@@ -579,14 +567,30 @@
                 .then(data => {
                     console.log(data);
 
-                    populateTable(data);
+                    if (!data.result) {
+                        throw new Error('Invalid response format. Missing results.');
+                    }
 
+                    // Populate results table
+                    populateResultsTable(data.result);
+                    
+                    // Populate metadata if available
+                    if (data.metadata) {
+                        // Format and display the metadata as JSON
+                        document.getElementById('metadataTextarea').value = JSON.stringify(data.metadata, null, 2);
+                        
+                        // If dependencies exist, populate the dependencies table
+                        if (data.metadata.dependencies && data.metadata.dependencies.length > 0) {
+                            populateDependenciesTable(data.metadata.dependencies);
+                        }
+                    }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while executing the query');
-                    const table = document.getElementById('queryResultTable');
-                    table.innerHTML = '';
+                    alert('Error: ' + error.message);
+                    document.getElementById('queryResultTable').innerHTML = '';
+                    document.getElementById('metadataTextarea').value = '';
+                    document.getElementById('dependenciesTable').querySelector('tbody').innerHTML = '';
                 });
         });
 
@@ -602,31 +606,100 @@
             document.getElementById('saveQueryModal').close();
         });
 
-        function populateTable(data){
+        // Function to populate results table
+        function populateResultsTable(results) {
             const table = document.getElementById('queryResultTable');
             table.innerHTML = '';
 
+            if (!results || results.length === 0) {
+                table.innerHTML = '<tr><td>No results found</td></tr>';
+                return;
+            }
+
+            // Get column names from the first result object
+            const columns = Object.keys(results[0]);
+            
+            // Create header row
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
-            data.columns.forEach(column => {
+            columns.forEach(column => {
                 const th = document.createElement('th');
-                th.textContent = column.name + " (" + column.type + ")";
+                th.textContent = column;
                 headerRow.appendChild(th);
             });
             thead.appendChild(headerRow);
             table.appendChild(thead);
 
+            // Create rows for each result
             const tbody = document.createElement('tbody');
-            data.results.forEach(row => {
+            results.forEach(result => {
                 const tr = document.createElement('tr');
-                data.columns.forEach(column => {
+                columns.forEach(column => {
                     const td = document.createElement('td');
-                    td.textContent = row[column.name];
+                    // Try to decode base64 values if they look like base64
+                    const value = result[column];
+                    try {
+                        if (typeof value === 'string' && /^[A-Za-z0-9+/=]+$/.test(value)) {
+                            const decoded = atob(value);
+                            if (/^[\x00-\x7F]*$/.test(decoded)) {  // Check if ASCII
+                                td.textContent = decoded;
+                            } else {
+                                td.textContent = value;
+                            }
+                        } else {
+                            td.textContent = value;
+                        }
+                    } catch (e) {
+                        td.textContent = value;
+                    }
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
             });
             table.appendChild(tbody);
         }
+
+        // Function to populate dependencies table
+        function populateDependenciesTable(dependencies) {
+            const tbody = document.getElementById('dependenciesTable').querySelector('tbody');
+            tbody.innerHTML = '';
+
+            dependencies.forEach(dep => {
+                const tr = document.createElement('tr');
+                
+                // ID column
+                const tdId = document.createElement('td');
+                tdId.textContent = dep.id;
+                tr.appendChild(tdId);
+                
+                // Type column
+                const tdType = document.createElement('td');
+                tdType.textContent = dep.type;
+                tr.appendChild(tdType);
+                
+                // Query column
+                const tdQuery = document.createElement('td');
+                tdQuery.textContent = dep.query;
+                tr.appendChild(tdQuery);
+                
+                // Function column
+                const tdFunction = document.createElement('td');
+                tdFunction.textContent = dep.function;
+                tr.appendChild(tdFunction);
+                
+                // Order column
+                const tdOrder = document.createElement('td');
+                tdOrder.textContent = dep.order;
+                tr.appendChild(tdOrder);
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Show/hide materialized view options
+        document.getElementById('materializedViewCheck').addEventListener('change', function() {
+            document.getElementById('materializedViewOptions').style.display = 
+                this.checked ? 'block' : 'none';
+        });
     </script>
 </main>

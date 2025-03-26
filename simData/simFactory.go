@@ -12,7 +12,7 @@ type Factory struct {
 
 func (f *Factory) AddNode(id string, node FactoryNode, nodesWithin map[string]FactoryNode, processingTime time.Duration, queueSize int) {
 	if queueSize <= 0 {
-		queueSize = 100
+		queueSize = 500
 	}
 	nextNodes := make(map[string]FactoryNode)
 	errorNode := f.GetNode("reject")
@@ -121,7 +121,7 @@ func IntiliaseFactory(connections map[string]*DataSource) *Factory {
 		nodes:       make(map[string]FactoryNode),
 		connections: connections,
 	}
-	queueSize := 100
+	queueSize := 500
 
 	// Base nodes
 	factory.AddNode("reject", &Reject{Name: "Reject Bin"}, nil, 0, queueSize)
@@ -132,7 +132,7 @@ func IntiliaseFactory(connections map[string]*DataSource) *Factory {
 	factory.AddNode("raw_inventory", &InventoryNode{
 		Node:          Node{ID: "raw_inventory", NodeVersion: NodeTypeInventory},
 		Name:          "Raw Materials Storage",
-		Capacity:      100,
+		Capacity:      500,
 		AllowedTypes:  []string{"Steel", "Aluminum", "Plastic", "Electronics"},
 		CurrentStored: 0,
 	}, nil, 1*time.Second, queueSize)
@@ -148,7 +148,7 @@ func IntiliaseFactory(connections map[string]*DataSource) *Factory {
 	factory.AddNode("finished_inventory", &InventoryNode{
 		Node:          Node{ID: "finished_inventory", NodeVersion: NodeTypeInventory},
 		Name:          "Finished Goods Storage",
-		Capacity:      100,
+		Capacity:      500,
 		AllowedTypes:  []string{"Steel", "Aluminum", "Plastic", "Electronics", "Mixed"},
 		CurrentStored: 0,
 	}, nil, 1*time.Second, queueSize)
