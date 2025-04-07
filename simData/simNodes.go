@@ -798,7 +798,6 @@ func (pack *PackagingNode) Type() NodeVersion {
 func IntialiseConnections(registry *util.Registry) map[string]*DataSource {
 	conns := make(map[string]*DataSource)
 
-	// Machine operations data source
 	conns["machine_operations"] = &DataSource{
 		Name:     "machine_operations",
 		DataType: "postgres",
@@ -814,7 +813,6 @@ func IntialiseConnections(registry *util.Registry) map[string]*DataSource {
 			},
 		},
 		Conditions: func(n *Node, p *Part) bool {
-			// All machine nodes except storage
 			nodeType := n.NodeVersion
 			return nodeType == NodeTypeCuttingMachine ||
 				nodeType == NodeTypeSensorMachine ||
@@ -849,7 +847,6 @@ func IntialiseConnections(registry *util.Registry) map[string]*DataSource {
 		},
 	}
 
-	// Worker activity data source
 	conns["worker_activity"] = &DataSource{
 		Name:     "worker_activity",
 		DataType: "postgres",
@@ -894,7 +891,6 @@ func IntialiseConnections(registry *util.Registry) map[string]*DataSource {
 		},
 	}
 
-	// Inventory tracking
 	conns["inventory_tracking"] = &DataSource{
 		Name:     "inventory_tracking",
 		DataType: "postgres",

@@ -74,11 +74,11 @@ export class Connection {
         const trimmedLine = line.trim();
         
         if (trimmedLine.startsWith('node=')) {
-            // Handle queue message format: "node=nodeId;queue=count"
+
             const parts = trimmedLine.split(';');
             if (parts.length >= 2 && parts[1].startsWith('queue=')) {
-                const nodeId = parts[0].substring(5); // Remove 'node=' prefix
-                const queueCount = parseInt(parts[1].substring(6)); // Remove 'queue=' prefix
+                const nodeId = parts[0].substring(5);
+                const queueCount = parseInt(parts[1].substring(6));
                 
                 return {
                     type: 'queue',
@@ -90,15 +90,13 @@ export class Connection {
         }
         
         else if (trimmedLine.startsWith('part=')) {
-            // Handle state message format: "part=partId;state=stateValue;node=nodeId"
             const parts = trimmedLine.split(';');
             if (parts.length >= 3) {
-                const partIdRaw = parts[0].substring(5); // Remove 'part=' prefix
-                const partId = partIdRaw || 'node_state'; // Use a placeholder for empty part IDs
-                const state = parts[1].substring(6); // Remove 'state=' prefix
-                const nodeId = parts[2].substring(5); // Remove 'node=' prefix
+                const partIdRaw = parts[0].substring(5);
+                const partId = partIdRaw || 'node_state';
+                const state = parts[1].substring(6);
+                const nodeId = parts[2].substring(5);
                 
-                // If the part ID is empty, this is a node state update, not a part update
                 if (!partIdRaw) {
                     return {
                         type: 'nodeState',
@@ -129,7 +127,6 @@ export class Connection {
             }
         }
         
-        // Return raw message for unrecognized formats
         return { type: 'raw', message: trimmedLine };
     }
 

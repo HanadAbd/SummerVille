@@ -9,7 +9,6 @@ declare global {
     };
   }
 }
-console.log("testData.ts loaded");
 
 const canvas = document.getElementById("map") as HTMLCanvasElement;
 const homeButton = document.getElementById("homeButton") as HTMLButtonElement;
@@ -79,7 +78,6 @@ function updateTextLog(msg: any) {
     const logTextArea = document.getElementById("logs") as HTMLTextAreaElement;
     if (!logTextArea) return;
     
-    // Make sure msg is a string
     let textMsg = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2);
     
     var messages = textMsg.split('\n');
@@ -95,7 +93,8 @@ function updateTextLog(msg: any) {
     if (messageLength > cutOff) {
         logTextArea.value = logTextArea.value.substring(messageLength - cutOff);
     }
-}
+
+}   
 
 try {
     if (window.appData && window.appData.allNodes) {

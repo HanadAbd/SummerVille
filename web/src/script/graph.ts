@@ -275,32 +275,25 @@ export class Graph {
             const queueContents = this.nodeQueues.get(id) || [];
             const hasItems = queueContents.length > 0;
             
-            // Check if node has parts currently being processed
             const partsAtNode = Array.from(this.partStates.entries())
                 .filter(([_, state]) => state.nodeId === id)
                 .map(([partId, _]) => partId);
             
-            // Adjust visual based on queue and processing status
             if (hasItems || partsAtNode.length > 0) {
-                // Use a glow effect for nodes with items in queue or processing
                 this.ctx.shadowColor = node.event === 'Processing' ? 'rgba(52, 168, 83, 0.6)' : 'rgba(251, 188, 5, 0.6)';
                 this.ctx.shadowBlur = 10;
                 this.ctx.shadowOffsetX = 0;
                 this.ctx.shadowOffsetY = 0;
                 
-                // Increase line width for nodes with items
                 this.ctx.lineWidth += 1;
             }
             
-            // Draw based on processing time (circles for 0, rectangles for others)
             if (node.processingTime === 0) {
-                // Draw circle fill
                 this.ctx.beginPath();
                 const radius = Math.min(size.width, size.height) / 2;
                 this.ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
                 this.ctx.fill();
                 
-                // Draw circle stroke separately
                 this.ctx.beginPath();
                 this.ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
                 this.ctx.stroke();
@@ -787,6 +780,7 @@ export class Graph {
                     nodeId: logData.nodeId,
                     state: logData.state
                 });
+                this.nodeStates.set(logData.nodeId, logData.state);
                 break;
                 
             case 'nodeState':
@@ -799,6 +793,7 @@ export class Graph {
                     to: logData.targetNode,
                     progress: 0
                 });
+                this.nodeStates.set(logData.sourceNode, "Processed");
                 break;
                 
             case 'queue':
@@ -824,49 +819,54 @@ export class Graph {
             const currentTransits = new Map();
             
             for (const [partId, transit] of this.partsInTransit.entries()) {
-            if (transit.progress >= 1) {
-                this.partsInTransit.delete(partId);
-                this.partStates.set(partId, {
-                nodeId: transit.to,
-                state: 'Arrived'
-                });
-                continue;
-            }
+                if (transit.progress >= 1) {
+                    this.partsInTransit.delete(partId);
+                    this.partStates.set(partId, {
+                        nodeId: transit.to,
+                        state: 'Arrived'
+                    });
+                    continue;
+                }
 
-            const transitionSpeed = 0.01 + (0.01 / Math.max(1, this.partsInTransit.size));
-            transit.progress += transitionSpeed;
-            
-            if (transit.progress >= 1) {
-                this.partsInTransit.delete(partId);
-                this.partStates.set(partId, {
-                nodeId: transit.to,
-                state: 'Arrived'
-                });
-            } else {
-                currentTransits.set(partId, transit);
-            }
-            
-            needsRedraw = true;
+                const transitionSpeed = 0.01 + (0.01 / Math.max(1, this.partsInTransit.size));
+                transit.progress += transitionSpeed;
+                
+                if (transit.progress >= 1) {
+                    this.partsInTransit.delete(partId);
+                    this.partStates.set(partId, {
+                        nodeId: transit.to,
+                        state: 'Arrived'
+                    });
+                } else {
+                    currentTransits.set(partId, transit);
+                }
+                
+                needsRedraw = true;
             }
 
             this.partsInTransit = currentTransits;
             
             if (this.graphData) {
-            for (const [id, node] of Object.entries(this.graphData.nodes)) {
-                if (node.event === 'Processing') {
-                needsRedraw = true;
+                for (const [id, node] of Object.entries(this.graphData.nodes)) {
+                    const nodeState = this.nodeStates.get(id);
+                    if (nodeState && node.event !== nodeState) {
+                        node.event = nodeState;
+                        needsRedraw = true;
+                    }
+                    if (node.event === 'Processing') {
+                        needsRedraw = true;
+                    }
                 }
-            }
             }
             
             if (needsRedraw && timestamp - lastDrawTime >= frameInterval) {
-            this.renderCanvas();
-            lastDrawTime = timestamp;
+                this.renderCanvas();
+                lastDrawTime = timestamp;
             }
             
             requestAnimationFrame(animate);
         };
         
         requestAnimationFrame(animate);
-        }
+    }
 }

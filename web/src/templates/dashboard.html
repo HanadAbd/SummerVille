@@ -208,9 +208,9 @@
     <div class="dashboard">
         <div class="dashboard-item map output component-1">
             <h2 class="component-title">Interactive Factory Floor Map</h2>
-            <canvas id="nodeCanvas"></canvas>
-            <div class="node-tooltip" id="nodeTooltip"></div>
-            <div class="more-info"></div>
+            <canvas id="map" width="800" height="500"></canvas>
+            <button class="btn canvas-btn btn-primary" id="homeButton">Home</button>
+            <div class="tooltip" id="tooltip"></div>
         </div>
 
         <div class="selects-row">
@@ -238,19 +238,19 @@
         <div class="kpi-row">
             <div class="kpi-container component-4">
                 <h2 class="kpi-title">Parts Per Minute</h2>
-                <h1 class="kpi-card">100</h1>
+                <h1 class="kpi-card" id="partPerMinute">100</h1>
                 <div class="more-info"></div>
             </div>
             
             <div class="kpi-container component-5">
                 <h2 class="kpi-title">Total Amount Produced</h2>
-                <h1 class="kpi-card">100</h1>
+                <h1 class="kpi-card"id="totalAmountsProduced">100</h1>
                 <div class="more-info"></div>
             </div>
             
             <div class="kpi-container component-6">
                 <h2 class="kpi-title">Amount Produced This Shift</h2>
-                <h1 class="kpi-card">100</h1>
+                <h1 class="kpi-card"id="amountProduced">100</h1>
                 <div class="more-info"></div>
             </div>
         </div>
@@ -274,7 +274,7 @@
 <section class="sidebar">
     <div class="side-flex">
         <div class="sidebar-content">
-            <div class ="side-item data-sources">
+            <div class =" data-sources">
                 <h2 class="side-title">Data Sources</h2>
                 <div class="side-content">
                     <div class= "data-sources">
@@ -291,10 +291,10 @@
                     </div>
                 </div>
             </div>
-            <div class="side-item query">
+            <div class=" query">
                 <h2 class="side-title">Queries</h2>
             </div>
-            <div class="side-item performance">
+            <div class=" performance">
                 <h2 class="side-title">Performance</h2>
                 <div class="side-content">
                     <div class ="performance">
@@ -307,7 +307,7 @@
                     </div>
                 </div>
             </div>
-            <div class="side-item raw-output">
+            <div class=" raw-output">
                 <h2 class="side-title">Raw Output</h2>
                 <div class="side-content">
                     <div class="raw-component">
@@ -318,7 +318,7 @@
                 </div>
 
             </div>
-            <div class="side-item input-elements">
+            <div class=" input-elements">
                 <h2 class="side-title">Input Elements</h2>
                 <div class="side-content">
                     <div class="performance">
@@ -342,98 +342,29 @@
     </div>
 </section>
 <script>
-    const dataSource = {
-        machines: [
-            {
-                name: "Machine-01",
-                email: "john@example.com",
-                phone: "(353) 01 222 3333",
-                produced: 120,
-                partsPerMinute: 100,
-                producedThisShift: 80
-            },
-            {
-                name: "Machine-02",
-                email: "mark@gmail.com",
-                phone: "(01) 22 888 4444",
-                produced: 150,
-                partsPerMinute: 110,
-                producedThisShift: 90
-            },
-            {
-                name: "Machine-03",
-                email: "eoin@gmail.com",
-                phone: "0097 22 654 00033",
-                produced: 130,
-                partsPerMinute: 105,
-                producedThisShift: 85
-            }
-        ]
-    };
+    // Base values
+    let amountProduced = 100;
+    let totalAmount = 1000;
+    let basePartPerMinute = 50;
 
-    let components;
-    function generateComponents(id,name,type,position,size,data,inputs) {
-
-        return {
-            id: id,
-            name: name,
-            type: type,
-            position: position,
-            size: size,
-            data: data,
-            inputs: inputs
-        };
+    // Function to create random fluctuation (±10%)
+    function fluctuate(baseValue) {
+        const variation = baseValue * 0.1;
+        return Math.round(baseValue + (Math.random() * variation * 2 - variation));
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const floorMap = generateComponents(
-            "machine1",
-            'Machine',
-            'map',
-            { x: 0, y: 0 },
-            { width: 12, height: 6 },
-            dataSource.machines,
-            []
-        );
-
-        const machineSelect = generateComponents(
-            "machine1",
-            'Machine',
-            'select',
-            { x: 3, y: 0 },
-            { width: 2, height: 1 },
-            dataSource.machines,
-            []
-        );
-
-        const shiftSelect = generateComponents(
-            "machine1",
-            'Machine',
-            'select',
-            { x: 0, y: 0 },
-            { width: 2, height: 1},
-            dataSource.machines,
-            []
-        );
+    setInterval(() => {
+        // Only partPerMinute fluctuates
+        document.getElementById('partPerMinute').textContent = fluctuate(basePartPerMinute);
         
-        const partsProdChart = generateComponents(
-            'Products Produced Per Machine',
-            'chart',
-            { x: 0, y: 0 },
-            { width: 6, height: 4 },
-            dataSource.machines,
-            [machineSelect.id,]
-        );
-
-        const machineTable = generateComponents(
-            'Machine Table',
-            'table',
-            { x: 0, y: 0 },
-            { width: 6, height: 4 },
-            dataSource.machines,
-            [machineSelect.id,]
-        );
-        document.querySelectorAll('.more-info').forEach(info => {
+        // Others increase steadily
+        amountProduced += Math.floor(Math.random() * 2) + 3; // 3-4 parts increase
+        totalAmount += Math.floor(Math.random() * 2) + 3; // 3-4 parts increase
+        
+        document.getElementById('amountProduced').textContent = amountProduced;
+        document.getElementById('totalAmountsProduced').textContent = totalAmount;
+    }, 1000);
+    document.querySelectorAll('.more-info').forEach(info => {
             info.addEventListener('click', () => {
                 document.querySelector('.sidebar').style.display = 'block';
                 document.querySelector('main').style.margin = '0 40px'
@@ -447,80 +378,11 @@
                 document.querySelector('.tooltip').style.display = 'none';
             });
         });
-
-        document.querySelectorAll('select').forEach(select => {
-            select.addEventListener('change', updateComponentsFromInput);
-        });
-
-        reRenderAll();
-    });
-    function updateComponentsFromInput(event) {
-        dataSource.machines = dataSource.machines.map(machine => ({
-            ...machine,
-            produced: Math.floor(Math.random() * 100 + 100),
-            partsPerMinute: Math.floor(Math.random() * 70 + 50),
-            producedThisShift: Math.floor(Math.random() * 70 + 80)
-        }));
-        reRenderAll();
-    }
-
-    function reRenderAll() {
-        createGrid();
-        createChart();
-        updateKPIs();
-    }
-
-    function updateKPIs() {
-        const averagePartsPerMinute = Math.round(
-            dataSource.machines.reduce((sum, m) => sum + m.partsPerMinute, 0) / dataSource.machines.length
-        );
-        const totalProduced = dataSource.machines.reduce((sum, m) => sum + m.produced, 0);
-        const totalProducedThisShift = dataSource.machines.reduce((sum, m) => sum + m.producedThisShift, 0);
-
-        const kpiCards = document.querySelectorAll('.kpi-card');
-        if (kpiCards.length >= 3) {
-            // Assumes the first KPI shows parts per minute, the second total produced,
-            // and the third produced this shift.
-            kpiCards[0].textContent = averagePartsPerMinute;
-            kpiCards[1].textContent = totalProduced;
-            kpiCards[2].textContent = totalProducedThisShift;
-        }
-    }
-
-    function createChart() {
-        const ctx = document.getElementById('myChart').getContext('2d');
-        const labels = dataSource.machines.map(machine => machine.name);
-        const producedData = dataSource.machines.map(machine => machine.produced);
-
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Products Produced',
-                    data: producedData,
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
-
-    function createGrid() {
-        const gridData = dataSource.machines.map(machine => [machine.name, machine.email, machine.phone]);
-        new gridjs.Grid({
-            columns: ["Name", "Email", "Phone Number"],
-            data: gridData
-        }).render(document.getElementById("wrapper"));
-    }
-
-
+   window.appData = {
+        title: '{{.Title}}',
+        allNodes: '{{.AllNodes}}',
+        nodeCount: '{{.NodeCount}}'
+    };
 </script>
+
+<script type="module" src="/static/script/dashboard.js"></script>

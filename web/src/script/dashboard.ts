@@ -1,47 +1,59 @@
-import Chart from 'chart.js/auto';
-import { Grid } from 'gridjs';
+import {Connection} from "./handleSocket.js";
+import {Graph,Node} from "./graph.js";
+import { Grid } from "gridjs";
 
-// Chart.js initialization
-const ctx = (document.getElementById('myChart') as HTMLCanvasElement).getContext('2d');
-if (ctx) {
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ['January', 'February', 'March', 'April'],
-      datasets: [{
-        label: 'Production',
-        data: [10, 20, 30, 40],
-        backgroundColor: 'rgba(0, 123, 255, 0.5)',
-        borderColor: 'rgba(0, 123, 255, 1)',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          display: true
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  });
+
+declare global {
+  interface Window {
+    appData: {
+      allNodes: string;
+      count: string;
+    };
+  }
 }
 
-// Grid.js table initialization
-new Grid({
-  columns: ["Machine", "Shift", "Amount Produced"],
-  data: [
-    ["Machine 1", "Shift 1", 100],
-    ["Machine 1", "Shift 2", 150],
-    ["Machine 2", "Shift 1", 120],
-    ["Machine 2", "Shift 2", 170]
-  ],
-  pagination: true,
-  search: true,
-  sort: true
-}).render(document.getElementById("table-wrapper")as HTMLElement);
+
+const canvas = document.getElementById("map") as HTMLCanvasElement;
+const homeButton = document.getElementById("homeButton") as HTMLButtonElement;
+const tooltip = document.getElementById("tooltip") as HTMLElement;
+
+const graph = new Graph(canvas, homeButton, tooltip);
+
+graph.nodeClickCallback = (node: Node) => {
+    const nodeTextArea = document.getElementById("edit-node") as HTMLTextAreaElement;
+
+    fetch(`/api/simdata/get_node?node_id=${node.id}`)
+        .then(response => response.json())
+        .then(data => {
+            nodeTextArea.value = JSON.stringify(data["payload"], null, 2);
+        })
+        .catch(error => {
+            console.error('Error fetching node data:', error);
+        });
+        
+    console.log("Node clicked:", node);
+}
+
+
+graph.renderCanvas();
+
+const conn = new Connection();
+
+conn.connectToTopic("logs", (msg: string) => {
+    try {
+        const logData = typeof msg === 'string' ? JSON.parse(msg) : msg;
+        
+        graph.processLogMessage(logData);
+        
+    } catch (e) {
+        console.error("Failed to parse log message:", e);
+    }
+});
+try {
+    if (window.appData && window.appData.allNodes) {
+        const nodes = JSON.parse(window.appData.allNodes);
+        graph.setData({ nodes });
+    }
+} catch (error) {
+    console.error('Error loading static node data:', error);
+}
